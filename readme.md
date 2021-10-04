@@ -72,4 +72,47 @@ router.post('/test-page', (req, res) => {
 })
 ```
 
+The errors object returned contains summary, inline and text objects for use in templates.
+
+If we have some Nunjucks macros to pass errors into:
+```
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+
+{% macro summary(data = {}) %}
+    {% if data.errors %}
+        {{ govukErrorSummary({
+            titleText: "There is a problem",
+            errorList: data.errors
+        })    }}
+    {% endif %}
+{% endmacro %}
+
+{% macro inline(data = {}) %}
+    {% if data.errors[data.key] %}
+        <span id="{{ data.key }}-error-inline" class="govuk-error-message">
+        <span class="govuk-visually-hidden">Error: </span>
+        {{ data.errors[data.key].text }}
+      </span>
+    {% endif %}
+{% endmacro %}
+```
+Then we can use these macros in a standard Prototype kit template with our errors object, if there are no errors the template just skips over the macros.
+```
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    {{ errorMacros.summary({errors: errors.summary}) }}
+    <form action="?" method="post">
+      <div class="govuk-form-group{% if errors.inline['full-name'] %} govuk-form-group--error{% endif %}">
+        <fieldset class="govuk-fieldset">
+          <legend class="govuk-fieldset__legend govuk-fieldset__legend--xl">
+            <h1 class="govuk-fieldset__heading">
+              What is your full name?
+            </h1>
+          </legend>
+          {{ errorMacros.inline({errors: errors.inline, key: 'full-name'}) }}
+          <div class="govuk-radios">
+            <div class="govuk-radios__item"> ...
+```
+
 It is possible to build up schemas of models and layer validation to establish the validity of many pages together.

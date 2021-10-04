@@ -1,5 +1,5 @@
 {
-  "name": "gds-validation",
+  "name": "@nubz/gds-validation",
   "version": "0.1.0",
   "description": "Form validation with GDS error templates, works with Govuk Prototype Kit",
   "main": "index.js",
@@ -15,5 +15,20 @@
   },
   "devDependencies": {
     "jest": "^27.2.4"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nubz/gds-validation.git"
+  },
+  "keywords": [
+    "GDS",
+    "errors",
+    "Gov",
+    "Prototype",
+    "Kit"
+  ],
+  "bugs": {
+    "url": "https://github.com/nubz/gds-validation/issues"
+  },
+  "homepage": "https://github.com/nubz/gds-validation#readme"
 }
