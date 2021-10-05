@@ -1,8 +1,7 @@
-#GDS Validation
+# GDS Validation
 
-Require this package in your node prototype and use the methods to validate forms and fields.
-
-All error messages are templated to GDS recommendations
+Require this package in your node apps, including govuk prototypes and use the methods to validate forms and fields to 
+return error messages that are templated to GDS recommendations and optimised for use in govuk prototype Nunjucks error summary component
 
 ```
 npm install --save @nubz/gds-validation
