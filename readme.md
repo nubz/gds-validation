@@ -1,11 +1,15 @@
-GDS Validation
+#GDS Validation
 
-Require this package in your node prototype and use the methods to validate forms and fields. 
+Require this package in your node prototype and use the methods to validate forms and fields.
+
+All error messages are templated to GDS recommendations
+
+```
+npm install --save @nubz/gds-validation
+```
 
 In an Express route handler for a post you could pass the posted data alongside a page model to the getPageErrors method 
 and this would return an error object that either contains errors or not.
-
-All error messages are templated to meet GDS specifications
 
 Page models are constructed by you to describe what fields are on a page and should be in the format:
 ```
@@ -14,7 +18,8 @@ Page models are constructed by you to describe what fields are on a page and sho
   includeIf?: Function<boolean>
 }
 
-// FieldObject
+// FieldObject only has 2 mandatory properties, type and name, the rest are a lot of optional properties to allow for 
+// explicit rules to be declared in models
 {
   type: 'date' | 'currency' | 'enum' | 'optionalString' | 'nonEmptyString' | 'number' | 'dynamicEnum' | 'file' | 'array',
   name: string // description of whatever-it-is, to be interpolated with error messages
@@ -24,7 +29,7 @@ Page models are constructed by you to describe what fields are on a page and sho
   exactLength?: number
   minLength?: number
   maxLength?: number
-  inputType?: 'digits' | 'numbers' | 'letters and numbers' | 'letters' // any description of permitted keys
+  inputType?: 'characters' | 'digits' | 'numbers' | 'letters and numbers' | 'letters' // any description of permitted keys
   numberMin?: number
   numberMax?: number
   currencyMin?: number
@@ -32,10 +37,10 @@ Page models are constructed by you to describe what fields are on a page and sho
   getMaxCurrencyFromField?: Function<number>
   afterFixedDate?: date
   beforeFixedDate?: date
-  getAfterDate?: Function<date>
-  getBeforeDate?: Function<date>
-  afterDateField?: string // description for error messages of the date being compared to
-  beforeDateField?: string // description for error messages of the date being compared to
+  afterDateField?: Function<date> // define function to grab value of field e.g. data => data.afterField
+  beforeDateField?: Function<date> // def
+  afterField?: string // description of the date being compared to e.g. 'Date of birth'
+  beforeField?: string // description of the date being compared to e.g. 'Date of death'
   beforeToday?: boolean
   patternText?: string // description of regex for error messages
 }
@@ -44,9 +49,9 @@ For example, if I had a page with 2 fields, name and date of birth then my model
 ```
 const pageModel = {
   fields: {
-    'name': {
+    'full-name': {
       type: 'nonEmptyString',
-      name: 'Your name'
+      name: 'Your full name'
     },
     'date-of-birth': {
       type: 'date',
@@ -56,9 +61,10 @@ const pageModel = {
   }
 }
 ```
-And using this in an Express route handler:
+And using this in an Express route handler, you are free to either pass in the post body or the entire data set if you 
+want to cross-reference other fields, fields use their name as key in page models
 ```
-const validation = require('gds-validation')
+const validation = require('@nubz/gds-validation')
 
 router.post('/test-page', (req, res) => {
   const errors = validation.getPageErrors(req.body, pageModel)
@@ -89,7 +95,7 @@ If we have some Nunjucks macros to pass errors into:
 
 {% macro inline(data = {}) %}
     {% if data.errors[data.key] %}
-        <span id="{{ data.key }}-error-inline" class="govuk-error-message">
+      <span id="{{ data.key }}-error-inline" class="govuk-error-message">
         <span class="govuk-visually-hidden">Error: </span>
         {{ data.errors[data.key].text }}
       </span>
@@ -115,4 +121,15 @@ Then we can use these macros in a standard Prototype kit template with our error
             <div class="govuk-radios__item"> ...
 ```
 
-It is possible to build up schemas of models and layer validation to establish the validity of many pages together.
+With this library it is possible to build up schemas of models and layer validation to establish the validity of groups 
+of pages/forms together. For example:
+```ecmascript 6
+const schema = {
+  firstPage: firstPageModel,
+  secondPage: secondPageModel,
+  thirdPage: thirdPageModel
+}
+
+// example to check all pages valid
+Object.keys(schema).every(validation.isValidPage)
+```
