@@ -1,3 +1,5 @@
+![example workflow](https://github.com/nubz/gds-validation/actions/workflows/node.js.yml/badge.svg)
+
 # GDS Validation
 
 Require this package in your node apps, including govuk prototypes and use the methods to validate forms and fields to 
