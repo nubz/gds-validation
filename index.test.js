@@ -411,6 +411,19 @@ describe('wrapper functions', () => {
     mockData.test = 'valid string'
     expect(validation.isValidPageWrapper(mockData)(schema.firstPage)).toBe(true)
   })
+
+  test('entire schemas can be validate to true if all pages are valid', () => {
+    const wholeSchemaIsValid = Object.entries(schema).every(([key, value]) => validation.isValidPage(mockData, value))
+    expect(wholeSchemaIsValid).toBe(true)
+  })
+
+  test('entire schemas can be validated to false if all pages are not valid', () => {
+    mockData.test = ''
+    const wholeSchemaIsValid = Object.entries(schema).every(([key, value]) => validation.isValidPage(mockData, value))
+    expect(wholeSchemaIsValid).toBe(false)
+  })
+
+
 })
 
 
