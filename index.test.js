@@ -35,7 +35,7 @@ describe('utilities used by error generation and validation', () => {
 
 })
 
-describe('validating against models', () => {
+describe('validating against page models', () => {
 
   const baseModel = {
     fields: {
@@ -57,6 +57,7 @@ describe('validating against models', () => {
   test('throws required error when nonEmptyString field is empty', () => {
     setTestField({type: 'nonEmptyString'})
     const expectedError = validation.errorTemplates.required(baseModel.fields.test.name)
+    expect(validation.isValidPage({}, baseModel)).toBeFalsy()
     expect(validation.getPageErrors({}, baseModel).text.test).toBe(expectedError)
   })
 
@@ -93,7 +94,7 @@ describe('validating against models', () => {
     expect(validation.getPageErrors({test: '123'}, baseModel).text.test).toBeUndefined()
   })
 
-  test('throws betweenMinAndMax error when answer is not between min and max', () => {
+  test('throws betweenMinAndMax error when answer length is not between min and max', () => {
     const min = 3
     const max = 5
     deleteTestFieldProperty('exactLength')
@@ -103,7 +104,7 @@ describe('validating against models', () => {
     expect(validation.getPageErrors({test: '123456'}, baseModel).text.test).toBe(expectedError)
   })
 
-  test('does not throw error when answer is between min and max', () => {
+  test('does not throw error when answer length is between min and max', () => {
     expect(validation.getPageErrors({test: '1234'}, baseModel).text.test).toBeUndefined()
   })
 
@@ -118,11 +119,82 @@ describe('validating against models', () => {
     expect(validation.getPageErrors({test: '1234'}, baseModel).text.test).toBeUndefined()
   })
 
+  test('throws tooLong error when answer is longer than maximum length', () => {
+    deleteTestFieldProperty('minLength')
+    setTestField({
+      maxLength: 5
+    })
+    const expectedError = validation.errorTemplates.tooLong(baseModel.fields.test.name, 5)
+    expect(validation.getPageErrors({test: '123456'}, baseModel).text.test).toBe(expectedError)
+  })
+
+  test('does not throw error when answer is not longer than maximum length', () => {
+    expect(validation.getPageErrors({test: '1234'}, baseModel).text.test).toBeUndefined()
+    expect(validation.getPageErrors({test: '12345'}, baseModel).text.test).toBeUndefined()
+  })
+
+  test('throws number error when answer is not a number', () => {
+    deleteTestFieldProperties(['maxLength', 'regex', 'patternText'])
+    setTestField({ type: 'number'})
+    const expectedError = validation.errorTemplates.number(baseModel.fields.test.name)
+    expect(validation.getPageErrors({test: 'twelve'}, baseModel).text.test).toBe(expectedError)
+  })
+
+  test('throws required error when number answer is empty', () => {
+    const expectedError = validation.errorTemplates.required(baseModel.fields.test.name)
+    expect(validation.getPageErrors({}, baseModel).text.test).toBe(expectedError)
+  })
+
+  test('does not throw number error when answer is a number or string representation of a number', () => {
+    expect(validation.getPageErrors({test: 12}, baseModel).text.test).toBeUndefined()
+    expect(validation.getPageErrors({test: '12'}, baseModel).text.test).toBeUndefined()
+  })
+
+  test('throws an enum error when required enum answer is empty', () => {
+    setTestField({ type: 'enum', validValues: ['yes', 'no'] })
+    const expectedError = validation.errorTemplates.enum(baseModel.fields.test.name)
+    expect(validation.getPageErrors({}, baseModel).text.test).toBe(expectedError)
+  })
+
+  test('throws an enum error when enum answer is not a valid value', () => {
+    const expectedError = validation.errorTemplates.enum(baseModel.fields.test.name)
+    expect(validation.getPageErrors({test: 'maybe'}, baseModel).text.test).toBe(expectedError)
+  })
+
+  test('does not throw an enum error when enum answer is a valid value', () => {
+    expect(validation.getPageErrors({test: 'yes'}, baseModel).text.test).toBeUndefined()
+    expect(validation.getPageErrors({test: 'no'}, baseModel).text.test).toBeUndefined()
+  })
+
+  test('throws an enum error when dynamicEnum answer is not a valid value', () => {
+    const expectedError = validation.errorTemplates.enum(baseModel.fields.test.name)
+    expect(validation.getPageErrors({test: 'maybe'}, baseModel).text.test).toBe(expectedError)
+  })
+
+  test('does not throw an enum error when enum answer is a valid value', () => {
+    expect(validation.getPageErrors({test: 'yes'}, baseModel).text.test).toBeUndefined()
+    expect(validation.getPageErrors({test: 'no'}, baseModel).text.test).toBeUndefined()
+  })
+
+  test('throws a missingFile error when file is missing', () => {
+    setTestField({ type: 'file' })
+    const expectedError = validation.errorTemplates.missingFile(baseModel.fields.test.name)
+    expect(validation.getPageErrors({}, baseModel).text.test).toBe(expectedError)
+  })
+
+  test('does not throw a missingFile error when file name is submitted', () => {
+    expect(validation.getPageErrors({test: 'any-file.pdf'}, baseModel).text.test).toBeUndefined()
+  })
+
   test('throws currency error when answer is not able to be converted to a currency amount', () => {
-    deleteTestFieldProperties(['minLength', 'regex', 'patternText'])
     setTestField({type: 'currency'})
     const expectedError = validation.errorTemplates.currency(baseModel.fields.test.name)
     expect(validation.getPageErrors({test: 'twelve'}, baseModel).text.test).toBe(expectedError)
+  })
+
+  test('throws required error when currency answer is empty', () => {
+    const expectedError = validation.errorTemplates.required(baseModel.fields.test.name)
+    expect(validation.getPageErrors({}, baseModel).text.test).toBe(expectedError)
   })
 
   test('does not throw currency error when answer is able to be converted to a currency amount', () => {
@@ -300,3 +372,45 @@ describe('validating against models', () => {
   })
 
 })
+
+describe('validating against fields', () => {
+
+  const fieldModel = {
+    includeIf: data => data.requireFieldModel,
+    type: 'optionalString',
+    name: 'test field'
+  }
+  test('returns valid when field is not required by condition in includeIf function', () => {
+    expect(validation.isValidField({requireFieldModel: false, fieldModel: ''}, fieldModel, 'fieldModel')).toBe(true)
+  })
+  test('returns false when field is required by condition in includeIf and data is not supplied', () => {
+    expect(validation.isValidField({requireFieldModel: true, fieldModel: ''}, fieldModel, 'fieldModel')).toBe(false)
+  })
+})
+
+describe('wrapper functions', () => {
+  const schema = {
+    firstPage: { fields: { 'test': { type: 'nonEmptyString', name: 'test string' } }},
+    secondPage: { fields: { 'test2': { type: 'nonEmptyString', name: 'test string 2' } }}
+  }
+
+  const mockData = {
+    test: '',
+    test2: 'some string'
+  }
+
+  test('wrapper for first page should return errors', () => {
+    expect(validation.isValidPageWrapper(mockData)(schema.firstPage)).toBe(false)
+  })
+
+  test('wrapper for second page should not return errors', () => {
+    expect(validation.isValidPageWrapper(mockData)(schema.secondPage)).toBe(true)
+  })
+
+  test('wrapper for first page should not return errors if valid fields', () => {
+    mockData.test = 'valid string'
+    expect(validation.isValidPageWrapper(mockData)(schema.firstPage)).toBe(true)
+  })
+})
+
+

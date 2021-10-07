@@ -4,7 +4,7 @@
   "description": "Form validation with GDS error templates, works with Govuk Prototype Kit",
   "main": "index.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest --coverage=true"
   },
   "author": "Alistair Macdonald (ali@nubz.com)",
   "license": "MIT",

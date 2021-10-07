@@ -120,18 +120,6 @@
           errorText = errorTemplates.required(fieldObj.name)
         } else if (!/^[0-9,]+(\.[0-9]{1,2})?$/.test(value.toString())) {
           errorText = errorTemplates.currency(fieldObj.name)
-        } else if (isNaN(+value)) {
-          errorText = errorTemplates.currency(fieldObj.name)
-        }
-        break
-      case 'dynamicEnum':
-        if (!value) {
-          errorText = errorTemplates.enum(fieldObj.name)
-        }
-        break
-      case 'array':
-        if (!value || value.length < fieldObj.minLength) {
-          errorText = errorTemplates.enum(fieldObj.name)
         }
         break
       case 'file':
@@ -191,7 +179,7 @@
     Object.keys(pageObj.fields).every(isValidFieldWrapper(payLoad, pageObj))
 
   const isValidPageWrapper = data => pageObj =>
-    Object.keys(pageObj.fields).every(isValidFieldWrapper(payLoad, pageObj))
+    Object.keys(pageObj.fields).every(isValidFieldWrapper(data, pageObj))
 
   const getPageErrors = (data, pageObj) =>
     Object.keys(pageObj.fields)
@@ -216,5 +204,6 @@
     errorTemplates,
     getPageErrors,
     isValidPageWrapper,
-    isValidPage
+    isValidPage,
+    isValidField
   }

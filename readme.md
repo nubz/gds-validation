@@ -132,5 +132,5 @@ const schema = {
 }
 
 // example to check all pages valid
-Object.keys(schema).every(validation.isValidPage)
+Object.entries(schema).every(([key, value]) => validation.isValidPage(data, value))
 ```
