@@ -20,6 +20,10 @@ describe('utilities used by error generation and validation', () => {
     expect(validation.currencyDisplay(2345)).toBe('£2,345')
   })
 
+  test('currency display returns empty string if no value passed', () => {
+    expect(validation.currencyDisplay()).toBe('')
+  })
+
   test('capitalises sentences', () => {
     expect(validation.capitalise('a test sentence')).toBe('A test sentence')
     expect(validation.capitalise('testing this sentence')).toBe('Testing this sentence')

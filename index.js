@@ -131,7 +131,7 @@
 
     // check generic field rules
     if (!errorText) {
-      if (fieldObj.hasOwnProperty('exactLength') && value.replace(/ /g, '').length !== fieldObj.exactLength) {
+      if (fieldObj.hasOwnProperty('exactLength') && value.toString().replace(/ /g, '').length !== fieldObj.exactLength) {
         errorText = errorTemplates.exactLength(fieldObj.name, fieldObj.exactLength, fieldObj.inputType || 'characters')
       } else if (fieldObj.hasOwnProperty('minLength') && fieldObj.hasOwnProperty('maxLength') &&
         (value.length < fieldObj.minLength || value.length > fieldObj.maxLength)) {

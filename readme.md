@@ -56,7 +56,7 @@ const pageModel = {
     },
     'date-of-birth': {
       type: 'date',
-      name: 'Your date of birth'
+      name: 'Your date of birth',
       beforeToday: true
     }
   }
