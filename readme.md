@@ -12,16 +12,46 @@ npm install --save @nubz/gds-validation
 In an Express route handler for a post you could pass the posted data alongside a page model to the getPageErrors method 
 and this would return an error object that either contains errors or not.
 
-Page models are constructed by you to describe what fields are on a page, page model types are:
-
-```
-// using TypeScript interfaces as documentation
-
+## API
+### Requests
+```typescript
 // PayLoad is a flat data map containing user answers
-
 interface Payload {
   [key: string]: string | number | Array<string> | Date
 }
+
+type getPageErrors = (data: Payload, pageModel: PageModel) => Errors
+type isValidPage = (data: Payload, pageModel: PageModel) => boolean
+type isValidField = (data: Payload, fieldObj: FieldObject, field: string) => boolean
+
+```
+
+### Responses
+```typescript
+interface Errors {
+  summary: Array<Error>
+  inline: InlineErrors
+  text: ErrorMessages
+}
+interface Error {
+  id: string
+  text: string
+  href: string
+}
+interface InlineErrors {
+  [key: string]: Error
+}
+interface ErrorMessages {
+  [key: string]: string
+}
+```
+
+## Page models
+
+Page models are constructed by you to describe what fields are on a page, page model types are:
+
+```typescript
+// using TypeScript interfaces as documentation
 
 interface PageModel {
   fields: FieldsMap
@@ -33,7 +63,7 @@ interface FieldsMap {
 }
 
 interface FieldObject {
-  type: 'date' | 'currency' | 'enum' | 'optionalString' | 'nonEmptyString' | 'number' | 'dynamicEnum' | 'file' | 'array'
+  type: 'date' | 'currency' | 'enum' | 'optionalString' | 'nonEmptyString' | 'number' | 'file' | 'array'
   name: string
   validValues?: Array<string> // for use if type === 'enum', value of enum will be compared to values listed here
   includeIf?: (data: Payload) => boolean
@@ -57,6 +87,8 @@ interface FieldObject {
   patternText?: string // description of regex for error messages
 }
 ```
+
+## Example usage
 For example, if I had a page with 2 fields, name and date of birth then my model might look like
 ```
 const pageModel = {
@@ -132,6 +164,7 @@ Then we can use these macros in a standard Prototype kit template with our error
           <div class="govuk-radios">
             <div class="govuk-radios__item"> ...
 ```
+## Schemas
 
 With this library it is possible to build up schemas of models and layer validation to establish the validity of groups 
 of pages/forms together like in a task list pattern. For example:
@@ -146,7 +179,37 @@ const schema = {
 Object.entries(schema).every(([key, value]) => validation.isValidPage(data, value))
 ```
 
+If we had a way to map a page to a route, e.g. if we added a `path` property to our page models, we could use this to 
+return the route to the first page that needs to be answered, using this
+pattern below allows you to provide the starting point for a task in a task list 
+pattern, incomplete tasks will return the first invalid page, complete tasks will 
+return the end page of the task e.g. Check Your Answers
+
+```ecmascript 6
+// in this example method, `schema` would be a collection of page models either to 
+// match a task or entire service
+const routeToNextQuestion = (data, schema) => {
+  const pages = Object.keys(schema).reduce((list, next) => {
+    const page = schema[next]
+    if (typeof page.includeIf === 'undefined' || page.includeIf(data)) {
+      page.title = next
+      list.push(page)
+    }
+    return list
+  }, [])
+  
+  const invalidPages = pages.filter(next => !validation.isValidPage(data, next))
+  if (!invalidPages.length) {
+    // all pages are valid so route to CYA
+    return 'check-your-answers'
+  }
+
+  return invalidPages[0].path
+}
+```
+
 ## To do list
 
+* document api properly
 * add support for custom validators being added to models
 * add dynamicEnum to enable valid values to be evaluated during validation
