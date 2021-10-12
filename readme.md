@@ -8,10 +8,6 @@ return error messages that are templated to GDS recommendations and optimised fo
 ```
 npm install --save @nubz/gds-validation
 ```
-
-In an Express route handler for a post you could pass the posted data alongside a page model to the getPageErrors method 
-and this would return an error object that either contains errors or not.
-
 ## API
 ### Requests
 ```typescript
@@ -22,8 +18,6 @@ interface Payload {
 
 type getPageErrors = (data: Payload, pageModel: PageModel) => Errors
 type isValidPage = (data: Payload, pageModel: PageModel) => boolean
-type isValidField = (data: Payload, fieldObj: FieldObject, field: string) => boolean
-
 ```
 
 ### Responses
@@ -89,8 +83,11 @@ interface FieldObject {
 ```
 
 ## Example usage
+In an Express route handler for a post you could pass the posted data alongside a page model to the getPageErrors method
+and this would return an error object that either contains errors or not.
+
 For example, if I had a page with 2 fields, name and date of birth then my model might look like
-```
+```ecmascript 6
 const pageModel = {
   fields: {
     'full-name': {
@@ -107,7 +104,7 @@ const pageModel = {
 ```
 And using this in an Express route handler, you are free to either pass in the post body or the entire data set if you 
 want to cross-reference other fields, fields use their name as key in page models
-```
+```ecmascript 6
 const validation = require('@nubz/gds-validation')
 
 router.post('/test-page', (req, res) => {
@@ -121,10 +118,7 @@ router.post('/test-page', (req, res) => {
   }
 })
 ```
-
-The errors object returned contains summary, inline and text objects for use in templates.
-
-If we have some Nunjucks macros to pass errors into:
+We can create Nunjucks macros to pass the errors returned into:
 ```
 {% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
 
@@ -146,8 +140,8 @@ If we have some Nunjucks macros to pass errors into:
     {% endif %}
 {% endmacro %}
 ```
-Then we can use these macros in a standard Prototype kit template with our errors object, if there are no errors the template just skips over the macros.
-```
+Then we can use these macros in a Gov Prototype kit template with our errors object, if there are no errors the template just skips over the macros.
+```html
 {% block content %}
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
@@ -175,8 +169,7 @@ const schema = {
   thirdPage: thirdPageModel
 }
 
-// example to check all pages valid
-Object.entries(schema).every(([key, value]) => validation.isValidPage(data, value))
+const allPagesValid = Object.entries(schema).every(([key, value]) => validation.isValidPage(data, value))
 ```
 
 If we had a way to map a page to a route, e.g. if we added a `path` property to our page models, we could use this to 
