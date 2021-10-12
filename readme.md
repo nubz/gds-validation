@@ -3,7 +3,9 @@
 # GDS Validation
 
 Require this package in your node apps, including govuk prototypes and use the methods to validate forms and fields to 
-return error messages that are templated to GDS recommendations and optimised for use in govuk prototype Nunjucks error summary component
+return error messages that are templated to GDS recommendations. Response formats are optimised for use in govuk prototype 
+Nunjucks error summary components, however there is no dependency on any govuk libraries so other apps can also use this package and 
+consume error responses as they see fit.
 
 ```
 npm install --save @nubz/gds-validation
@@ -112,7 +114,7 @@ router.post('/test-page', (req, res) => {
   if (errors.summary.length > 0) {
     res.render('/test-page', {
       errors: errors
-    }
+    })
   } else {
     res.redirect('next-page')
   }
