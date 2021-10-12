@@ -12,21 +12,32 @@ npm install --save @nubz/gds-validation
 In an Express route handler for a post you could pass the posted data alongside a page model to the getPageErrors method 
 and this would return an error object that either contains errors or not.
 
-Page models are constructed by you to describe what fields are on a page and should be in the format:
+Page models are constructed by you to describe what fields are on a page, page model types are:
+
 ```
-{
-  fields: Array<FieldObject>
-  includeIf?: Function<boolean>
+// using TypeScript interfaces as documentation
+
+// PayLoad is a flat data map containing user answers
+
+interface Payload {
+  [key: string]: string | number | Array<string> | Date
 }
 
-// FieldObject only has 2 mandatory properties, type and name, the rest are a lot of optional properties to allow for 
-// explicit rules to be declared in models
-{
-  type: 'date' | 'currency' | 'enum' | 'optionalString' | 'nonEmptyString' | 'number' | 'dynamicEnum' | 'file' | 'array',
-  name: string // description of whatever-it-is, to be interpolated with error messages
-  validValues?: Array<string> // required if type === 'enum', all values of an enum
-  includeIf?: Function<data => boolean>
-  regex?: RegEx
+interface PageModel {
+  fields: FieldsMap
+  includeIf?: (data: Payload) => boolean
+}
+
+interface FieldsMap {
+  [key: string]: FieldObject
+}
+
+interface FieldObject {
+  type: 'date' | 'currency' | 'enum' | 'optionalString' | 'nonEmptyString' | 'number' | 'dynamicEnum' | 'file' | 'array'
+  name: string
+  validValues?: Array<string> // for use if type === 'enum', value of enum will be compared to values listed here
+  includeIf?: (data: Payload) => boolean
+  regex?: RegExp
   exactLength?: number
   minLength?: number
   maxLength?: number
@@ -35,11 +46,11 @@ Page models are constructed by you to describe what fields are on a page and sho
   numberMax?: number
   currencyMin?: number
   currencyMax?: number
-  getMaxCurrencyFromField?: Function<number>
-  afterFixedDate?: date
-  beforeFixedDate?: date
-  afterDateField?: Function<date> // define function to grab value of field e.g. data => data.afterField
-  beforeDateField?: Function<date> // def
+  getMaxCurrencyFromField?: (data: Payload) => number
+  afterFixedDate?: Date
+  beforeFixedDate?: Date
+  afterDateField?: (data: Payload) => Date // define function to grab value of field e.g. data => data.afterField
+  beforeDateField?: (data: Payload) => Date
   afterField?: string // description of the date being compared to e.g. 'Date of birth'
   beforeField?: string // description of the date being compared to e.g. 'Date of death'
   beforeToday?: boolean
@@ -123,7 +134,7 @@ Then we can use these macros in a standard Prototype kit template with our error
 ```
 
 With this library it is possible to build up schemas of models and layer validation to establish the validity of groups 
-of pages/forms together. For example:
+of pages/forms together like in a task list pattern. For example:
 ```ecmascript 6
 const schema = {
   firstPage: firstPageModel,
@@ -134,3 +145,8 @@ const schema = {
 // example to check all pages valid
 Object.entries(schema).every(([key, value]) => validation.isValidPage(data, value))
 ```
+
+## To do list
+
+* add support for custom validators being added to models
+* add dynamicEnum to enable valid values to be evaluated during validation
