@@ -1,6 +1,6 @@
 {
   "name": "@nubz/gds-validation",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "Form validation with GDS error templates, works with Govuk Prototype Kit",
   "main": "index.js",
   "scripts": {
