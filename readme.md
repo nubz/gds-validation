@@ -12,8 +12,18 @@ npm install --save @nubz/gds-validation
 ```
 ## API
 ### Requests
+
+The main functions that are exposed are `getPageErrors()` which returns an errors object and `isValidPage()` which 
+returns a boolean value. Both functions require you to pass in the dataset/payload to be analysed and the model to 
+validate against.
+
+The dataset to be analysed should be a flat map of answers to all fields in order to work with this package. For simple, 
+single page validations where the request body contains all fields required, then passing in the body is enough. In 
+other, more integrated validations, then the entire dataset may be required to cross-reference the values of other named 
+fields. For example, in govuk prototypes the entire data set is contained within the session data attached to the 
+request `request.session.data` so if we had a page model with a field that references another field from another page or 
+system value then we would need this entire dataset to be passed in.
 ```typescript
-// PayLoad is a flat data map containing user answers
 interface Payload {
   [key: string]: string | number | Array<string> | Date
 }
@@ -22,31 +32,28 @@ type getPageErrors = (data: Payload, pageModel: PageModel) => Errors
 type isValidPage = (data: Payload, pageModel: PageModel) => boolean
 ```
 
-### Responses
-```typescript
-interface Errors {
-  summary: Array<Error>
-  inline: InlineErrors
-  text: ErrorMessages
-}
-interface Error {
-  id: string
-  text: string
-  href: string
-}
-interface InlineErrors {
-  [key: string]: Error
-}
-interface ErrorMessages {
-  [key: string]: string
-}
-```
+### Page models
 
-## Page models
-
-Page models are constructed by you to describe what fields are on a page, page model types are:
+Page models are constructed by you to describe what fields are on a page. A valid page model will use field names as 
+keys to field objects. If the field relates to a form control in a template you need to ensure the HTML field name 
+matches the key used in your page model.
 
 ```typescript
+// example model
+const pageModel = {
+  fields: {
+    'full-name': {
+      type: 'nonEmptyString',
+      name: 'Your full name'
+    },
+    'date-of-birth': {
+      type: 'date',
+      name: 'Your date of birth',
+      beforeToday: true
+    }
+  }
+}
+
 // using TypeScript interfaces as documentation
 
 interface PageModel {
@@ -73,7 +80,7 @@ interface FieldObject {
   currencyMin?: number
   currencyMax?: number
   getMaxCurrencyFromField?: (data: Payload) => number
-  afterFixedDate?: Date
+  afterFixedDate?: Date // iso format string e.g. 2021-04-01
   beforeFixedDate?: Date
   afterDateField?: (data: Payload) => Date // define function to grab value of field e.g. data => data.afterField
   beforeDateField?: (data: Payload) => Date
@@ -84,28 +91,32 @@ interface FieldObject {
 }
 ```
 
-## Example usage
-In an Express route handler for a post you could pass the posted data alongside a page model to the getPageErrors method
-and this would return an error object that either contains errors or not.
-
-For example, if I had a page with 2 fields, name and date of birth then my model might look like
-```ecmascript 6
-const pageModel = {
-  fields: {
-    'full-name': {
-      type: 'nonEmptyString',
-      name: 'Your full name'
-    },
-    'date-of-birth': {
-      type: 'date',
-      name: 'Your date of birth',
-      beforeToday: true
-    }
-  }
+### Responses
+The `isValidPage()` function will return `true` or `false`. The `getPageErrors()` function will return an errors object, even when there are no errors within, so to assert there
+are no errors we could test the length of the summary array, if `0` then no errors are within.
+```typescript
+interface Errors {
+  summary: Array<Error>
+  inline: InlineErrors
+  text: ErrorMessages
+}
+interface Error {
+  id: string
+  text: string
+  href: string
+}
+interface InlineErrors {
+  [key: string]: Error
+}
+interface ErrorMessages {
+  [key: string]: string
 }
 ```
-And using this in an Express route handler, you are free to either pass in the post body or the entire data set if you 
-want to cross-reference other fields, fields use their name as key in page models
+
+## Example usage
+In an Express route handler for a post you could pass the posted data alongside a page model to the `getPageErrors` method
+and this would return an error object that either contains errors or not.
+
 ```ecmascript 6
 const validation = require('@nubz/gds-validation')
 
