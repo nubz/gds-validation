@@ -2,7 +2,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/nubz/gds-validation/badge.svg?branch=main)](https://coveralls.io/github/nubz/gds-validation?branch=main)
 # GDS Validation
 
-Require this package in your node apps, including govuk prototypes and use the methods to validate forms and fields to 
+Require this package in your node server apps, including govuk prototypes and use the methods to validate forms and fields on the server to 
 return error messages that are templated to GDS recommendations. Response formats are optimised for use in govuk prototype 
 Nunjucks error summary components, however there is no dependency on any govuk libraries so other apps can also use this package and 
 consume error responses as they see fit.
@@ -25,7 +25,7 @@ request `request.session.data` so if we had a page model with a field that refer
 system value then we would need this entire dataset to be passed in.
 ```typescript
 interface Payload {
-  [key: string]: string | number | Array<string> | Date
+  [key: String]: String | Number | Array<String> | Date
 }
 
 type getPageErrors = (data: Payload, pageModel: PageModel) => Errors
@@ -36,7 +36,8 @@ type isValidPage = (data: Payload, pageModel: PageModel) => boolean
 
 Page models are constructed by you to describe what fields are on a page. A valid page model will use field names as 
 keys to field objects. If the field relates to a form control in a template you need to ensure the HTML field name 
-matches the key used in your page model.
+matches the key used in your page model, dates can be composed of separate day, month and year inputs - so in this case 
+the fields on the page are expected to use the date field name those inputs are composed into.
 
 ```typescript
 // example model
@@ -58,7 +59,7 @@ const pageModel = {
 
 interface PageModel {
   fields: FieldsMap
-  includeIf?: (data: Payload) => boolean
+  includeIf?: (data: Payload) => Boolean
 }
 
 interface FieldsMap {
@@ -67,27 +68,27 @@ interface FieldsMap {
 
 interface FieldObject {
   type: 'date' | 'currency' | 'enum' | 'optionalString' | 'nonEmptyString' | 'number' | 'file' | 'array'
-  name: string
-  validValues?: Array<string> // for use if type === 'enum', value of enum will be compared to values listed here
-  includeIf?: (data: Payload) => boolean
+  name: String
+  validValues?: Array<String> // for use if type === 'enum', value of enum will be compared to values listed here
+  includeIf?: (data: Payload) => Boolean
   regex?: RegExp
-  exactLength?: number
-  minLength?: number
-  maxLength?: number
+  exactLength?: Number
+  minLength?: Number
+  maxLength?: Number
   inputType?: 'characters' | 'digits' | 'numbers' | 'letters and numbers' | 'letters' // any description of permitted keys
-  numberMin?: number
-  numberMax?: number
-  currencyMin?: number
-  currencyMax?: number
-  getMaxCurrencyFromField?: (data: Payload) => number
+  numberMin?: Number
+  numberMax?: Number
+  currencyMin?: Number
+  currencyMax?: Number
+  getMaxCurrencyFromField?: (data: Payload) => Number
   afterFixedDate?: Date // iso format string e.g. 2021-04-01
   beforeFixedDate?: Date
   afterDateField?: (data: Payload) => Date // define function to grab value of field e.g. data => data.afterField
   beforeDateField?: (data: Payload) => Date
-  afterField?: string // description of the date being compared to e.g. 'Date of birth'
-  beforeField?: string // description of the date being compared to e.g. 'Date of death'
-  beforeToday?: boolean
-  patternText?: string // description of regex for error messages
+  afterField?: String // description of the date being compared to e.g. 'Date of birth'
+  beforeField?: String // description of the date being compared to e.g. 'Date of death'
+  beforeToday?: Boolean
+  patternText?: String // description of regex for error messages
 }
 ```
 
@@ -101,27 +102,41 @@ interface Errors {
   text: ErrorMessages
 }
 interface Error {
-  id: string
-  text: string
-  href: string
+  id: String
+  text: String
+  href: String
 }
 interface InlineErrors {
-  [key: string]: Error
+  [key: String]: Error
 }
 interface ErrorMessages {
-  [key: string]: string
+  [key: String]: String
 }
 ```
 
 ## Example usage
 In an Express route handler for a post you could pass the posted data alongside a page model to the `getPageErrors` method
-and this would return an error object that either contains errors or not.
+and this would return an error object that either contains errors or not. In this example we are writing the page model 
+directly into the call as second parameter which can often be a quick way to get error handling on a page.
 
 ```ecmascript 6
 const validation = require('@nubz/gds-validation')
 
 router.post('/test-page', (req, res) => {
-  const errors = validation.getPageErrors(req.body, pageModel)
+  const errors = validation.getPageErrors(req.body, {
+    fields: {
+      'full-name': {
+        type: 'nonEmptyString',
+        name: 'Your full name'
+      },
+      'date-of-birth': {
+        type: 'date',
+        name: 'Your date of birth',
+        beforeToday: true
+      }
+    }
+  })
+  
   if (errors.summary.length > 0) {
     res.render('/test-page', {
       errors: errors
@@ -131,7 +146,7 @@ router.post('/test-page', (req, res) => {
   }
 })
 ```
-We can create Nunjucks macros to pass the errors returned into:
+We can create Nunjucks macros to pass the errors returned into, these macros work with govuk prototypes:
 ```
 {% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
 
@@ -171,7 +186,7 @@ Then we can use these macros in a Gov Prototype kit template with our errors obj
           <div class="govuk-radios">
             <div class="govuk-radios__item"> ...
 ```
-## Schemas
+## Schemas and task lists
 
 With this library it is possible to build up schemas of models and layer validation to establish the validity of groups 
 of pages/forms together like in a task list pattern. For example:
