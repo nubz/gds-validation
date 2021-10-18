@@ -71,7 +71,7 @@ interface FieldObject {
   name: String
   validValues?: Array<String> // for use if type === 'enum' or `array`, value of enum will be compared to values listed here
   matches?: Array<String> // value of input (can be any string type) must be in this list
-  matchExclusions?: Array<String> // value of input (can be any string type) must not be in this list
+  matchingExclusions?: Array<String> // value of input (can be any string type) must not be in this list
   noMatchText?: String // for use in error message to describe what the input is matched against - defaults to `our records` if missing
   includeIf?: (data: Payload) => Boolean
   regex?: RegExp
@@ -91,7 +91,7 @@ interface FieldObject {
   afterField?: String // description of the date being compared to e.g. 'Date of birth'
   beforeField?: String // description of the date being compared to e.g. 'Date of death'
   beforeToday?: Boolean
-  patternText?: String // description of regex for error messages
+  patternText?: String // description of regex for error messages - defaults to `${fieldDescription} is not valid`
 }
 ```
 
