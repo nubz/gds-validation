@@ -171,18 +171,40 @@ describe('validating against page models', () => {
     expect(getTestFieldError({test: 'no'})).toBeUndefined()
   })
 
-  test('throws an enum error when dynamicEnum answer is not a valid value', () => {
-    const expectedError = validation.errorTemplates.enum(baseModel.fields.test.name)
-    expect(getTestFieldError({test: 'maybe'})).toBe(expectedError)
-  })
-
   test('does not throw an enum error when enum answer is a valid value', () => {
     expect(getTestFieldError({test: 'yes'})).toBeUndefined()
     expect(getTestFieldError({test: 'no'})).toBeUndefined()
   })
 
+  test('throws an enum error when required array answer is empty', () => {
+    setTestField({ type: 'array', name: 'all colours you like', validValues: ['red', 'blue', 'green'], minLength: 1 })
+    const expectedError = validation.errorTemplates.enum(baseModel.fields.test.name)
+    expect(getTestFieldError({})).toBe(expectedError)
+  })
+
+  test('throws an enum error when not enough answers in array', () => {
+    setTestField({ minLength: 2 })
+    const expectedError = validation.errorTemplates.enum(baseModel.fields.test.name)
+    expect(getTestFieldError({test: ['red']})).toBe(expectedError)
+  })
+
+  test('does not throw an error when optional array is empty', () => {
+    deleteTestFieldProperties(['minLength'])
+    expect(getTestFieldError({})).toBeUndefined()
+  })
+
+  test('throws an enum error when array answer includes invalid answer', () => {
+    const expectedError = validation.errorTemplates.enum(baseModel.fields.test.name)
+    expect(getTestFieldError({test: ['red', 'yellow']})).toBe(expectedError)
+  })
+
+  test('does not throw an error when all array answers are valid', () => {
+    expect(getTestFieldError({test: ['red', 'blue']})).toBeUndefined()
+  })
+
   test('throws a missingFile error when file is missing', () => {
-    setTestField({ type: 'file' })
+    deleteTestFieldProperties(['validValues'])
+    setTestField({ type: 'file', name: 'test name' })
     const expectedError = validation.errorTemplates.missingFile(baseModel.fields.test.name)
     expect(getTestFieldError({})).toBe(expectedError)
   })

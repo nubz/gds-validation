@@ -93,8 +93,10 @@ interface FieldObject {
 ```
 
 ### Responses
-The `isValidPage()` function will return `true` or `false`. The `getPageErrors()` function will return an errors object, even when there are no errors within, so to assert there
-are no errors we could test the length of the summary array, if `0` then no errors are within.
+The `isValidPage()` function will return `true` or `false`, this method is useful when iterating a group of pages 
+together. The `getPageErrors()` function will return an errors object for use in templates, even when there are no 
+errors within, so to assert there are no errors we could test the length of the summary array, if `0` then no errors are 
+within.
 ```typescript
 interface Errors {
   summary: Array<Error>
@@ -114,7 +116,7 @@ interface ErrorMessages {
 }
 ```
 
-## Example usage
+## Example usage of the errors object
 In an Express route handler for a post you could pass the posted data alongside a page model to the `getPageErrors` method
 and this would return an error object that either contains errors or not. In this example we are writing the page model 
 directly into the call as second parameter which can often be a quick way to get error handling on a page.
@@ -189,7 +191,7 @@ Then we can use these macros in a Gov Prototype kit template with our errors obj
 ## Schemas and task lists
 
 With this library it is possible to build up schemas of models and layer validation to establish the validity of groups 
-of pages/forms together like in a task list pattern. For example:
+of pages/forms together like in a task list pattern using the `isValidPage` method. For example:
 ```ecmascript 6
 const schema = {
   firstPage: firstPageModel,

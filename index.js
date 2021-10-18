@@ -17,27 +17,27 @@
   const capitalise = word => word.charAt(0).toUpperCase() + word.slice(1)
   const slugify = str => str.toLowerCase().replace(/\W+/g, '-').replace(/-$/, '')
   const errorTemplates = {
-    required: field => `Enter ${field}`,
-    betweenMinAndMax: (field, min, max) => `${capitalise(field)} must be between ${min} and ${max} characters`,
-    tooShort: (field, min) => `${capitalise(field)} must must be ${min} characters or more`,
-    tooLong: (field, max) => `${capitalise(field)} must be ${max} characters or fewer`,
-    exactLength: (field, len, type) => `${capitalise(field)} must be ${len} ${type}`,
-    number: field => `${capitalise(field)} must be a number`,
-    currency: field => `${capitalise(field)} must be an amount of money`,
-    numberMin: (field, min) => `${capitalise(field)} must be ${min} or more`,
-    currencyMin: (field, min) => `${capitalise(field)} must be ${currencyDisplay(min)} or more`,
-    numberMax: (field, max) => `${capitalise(field)} must be ${max} or less`,
-    currencyMax: (field, max) => `${capitalise(field)} must be ${currencyDisplay(max)} or less`,
-    currencyMaxField: (field, maxField, maxValue) => `${capitalise(field)} must not be more than the value of ${maxField} which is ${currencyDisplay(maxValue)}`,
-    pattern: (field, patternText) => `${patternText}`,
-    enum: field => `Select ${field}`,
-    missingFile: field => `Upload ${field}`,
-    date: field => `${capitalise(field)} must be a real date`,
-    beforeDate: (field, dateField, dateValue) => `${capitalise(field)} must be before ${dateField}, ${LocalDate.parse(dateValue).format(govDateFormat)}`,
-    afterDate: (field, dateField, dateValue) => `${capitalise(field)} must be after ${dateField}, ${LocalDate.parse(dateValue).format(govDateFormat)}`,
-    beforeToday: field => `${capitalise(field)} must be before today`,
-    afterFixedDate: (field, dateValue) => `${capitalise(field)} must be after ${LocalDate.parse(dateValue).format(govDateFormat)}`,
-    beforeFixedDate: (field, dateValue) => `${capitalise(field)} must be before ${LocalDate.parse(dateValue).format(govDateFormat)}`
+    required: fieldDescription => `Enter ${fieldDescription}`,
+    betweenMinAndMax: (fieldDescription, min, max) => `${capitalise(fieldDescription)} must be between ${min} and ${max} characters`,
+    tooShort: (fieldDescription, min) => `${capitalise(fieldDescription)} must must be ${min} characters or more`,
+    tooLong: (fieldDescription, max) => `${capitalise(fieldDescription)} must be ${max} characters or fewer`,
+    exactLength: (fieldDescription, len, type) => `${capitalise(fieldDescription)} must be ${len} ${type}`,
+    number: fieldDescription => `${capitalise(fieldDescription)} must be a number`,
+    currency: fieldDescription => `${capitalise(fieldDescription)} must be an amount of money`,
+    numberMin: (fieldDescription, min) => `${capitalise(fieldDescription)} must be ${min} or more`,
+    currencyMin: (fieldDescription, min) => `${capitalise(fieldDescription)} must be ${currencyDisplay(min)} or more`,
+    numberMax: (fieldDescription, max) => `${capitalise(fieldDescription)} must be ${max} or less`,
+    currencyMax: (fieldDescription, max) => `${capitalise(fieldDescription)} must be ${currencyDisplay(max)} or less`,
+    currencyMaxField: (fieldDescription, maxField, maxValue) => `${capitalise(fieldDescription)} must not be more than the value of ${maxField} which is ${currencyDisplay(maxValue)}`,
+    pattern: (fieldDescription, patternText) => `${patternText}`,
+    enum: fieldDescription => `Select ${fieldDescription}`,
+    missingFile: fieldDescription => `Upload ${fieldDescription}`,
+    date: fieldDescription => `${capitalise(fieldDescription)} must be a real date`,
+    beforeDate: (fieldDescription, dateField, dateValue) => `${capitalise(fieldDescription)} must be before ${dateField}, ${LocalDate.parse(dateValue).format(govDateFormat)}`,
+    afterDate: (fieldDescription, dateField, dateValue) => `${capitalise(fieldDescription)} must be after ${dateField}, ${LocalDate.parse(dateValue).format(govDateFormat)}`,
+    beforeToday: fieldDescription => `${capitalise(fieldDescription)} must be before today`,
+    afterFixedDate: (fieldDescription, dateValue) => `${capitalise(fieldDescription)} must be after ${LocalDate.parse(dateValue).format(govDateFormat)}`,
+    beforeFixedDate: (fieldDescription, dateValue) => `${capitalise(fieldDescription)} must be before ${LocalDate.parse(dateValue).format(govDateFormat)}`
   }
 
   const evalValuesFromData = (fieldObj, data) => {
@@ -54,7 +54,7 @@
     }
   }
 
-  const isValidField = (payLoad, fieldObj, field) => {
+  const isValidField = (payLoad, fieldObj, fieldKey) => {
 
     if (typeof fieldObj.includeIf === 'function' && !fieldObj.includeIf(payLoad)) {
       return true
@@ -62,20 +62,20 @@
 
     evalValuesFromData(fieldObj, payLoad)
 
-    if (payLoad[field] && fieldObj.type === 'currency') {
-      payLoad[field] = payLoad[field].toString().replace(/£/, '')
+    if (payLoad[fieldKey] && fieldObj.type === 'currency') {
+      payLoad[fieldKey] = payLoad[fieldKey].toString().replace(/£/, '')
     }
 
-    if (payLoad[field]) {
-      return !validationError(fieldObj, payLoad[field], field)
+    if (payLoad[fieldKey]) {
+      return !validationError(fieldObj, payLoad[fieldKey], fieldKey)
     }
 
     return false
   }
 
-  const buildHref = (field, fieldObj) =>
+  const buildHref = (fieldKey, fieldObj) =>
     fieldObj.type === 'enum' && fieldObj.validValues.length > 0 ?
-      field + '-' + slugify(fieldObj.validValues[0]) : field
+      fieldKey + '-' + slugify(fieldObj.validValues[0]) : fieldKey
 
   const isValidDate = date => {
     try {
@@ -85,7 +85,7 @@
     }
   }
 
-  const validationError = (fieldObj, value, field) => {
+  const validationError = (fieldObj, value, fieldKey) => {
     let errorText
     switch (fieldObj.type) {
       case 'date':
@@ -105,6 +105,12 @@
         break
       case 'enum':
         if (!value || !fieldObj.validValues.includes(value)) {
+          errorText = errorTemplates.enum(fieldObj.name)
+        }
+        break
+      case 'array':
+        if ((fieldObj.minLength && (!value || value.length < fieldObj.minLength)) ||
+          (fieldObj.validValues && Array.isArray(value) && !value.every(v => fieldObj.validValues.includes(v)))) {
           errorText = errorTemplates.enum(fieldObj.name)
         }
         break
@@ -166,14 +172,14 @@
     }
 
     return errorText ? {
-      id: field,
-      href: '#' + buildHref(field, fieldObj),
+      id: fieldKey,
+      href: '#' + buildHref(fieldKey, fieldObj),
       text: errorText
     } : null
   }
 
-  const isValidFieldWrapper = (payLoad, pageObj) => field =>
-    isValidField(payLoad, pageObj.fields[field], field)
+  const isValidFieldWrapper = (payLoad, pageObj) => fieldKey =>
+    isValidField(payLoad, pageObj.fields[fieldKey], fieldKey)
 
   const isValidPage = (payLoad, pageObj) =>
     Object.keys(pageObj.fields).every(isValidFieldWrapper(payLoad, pageObj))
