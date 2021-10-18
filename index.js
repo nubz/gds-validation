@@ -29,7 +29,7 @@
     numberMax: (fieldDescription, max) => `${capitalise(fieldDescription)} must be ${max} or less`,
     currencyMax: (fieldDescription, max) => `${capitalise(fieldDescription)} must be ${currencyDisplay(max)} or less`,
     currencyMaxField: (fieldDescription, maxField, maxValue) => `${capitalise(fieldDescription)} must not be more than the value of ${maxField} which is ${currencyDisplay(maxValue)}`,
-    pattern: (fieldDescription, patternText) => `${patternText}`,
+    pattern: (fieldDescription, patternText) => `${patternText || fieldDescription + ` is not valid`}`,
     enum: fieldDescription => `Select ${fieldDescription}`,
     missingFile: fieldDescription => `Upload ${fieldDescription}`,
     date: fieldDescription => `${capitalise(fieldDescription)} must be a real date`,
@@ -37,7 +37,8 @@
     afterDate: (fieldDescription, dateField, dateValue) => `${capitalise(fieldDescription)} must be after ${dateField}, ${LocalDate.parse(dateValue).format(govDateFormat)}`,
     beforeToday: fieldDescription => `${capitalise(fieldDescription)} must be before today`,
     afterFixedDate: (fieldDescription, dateValue) => `${capitalise(fieldDescription)} must be after ${LocalDate.parse(dateValue).format(govDateFormat)}`,
-    beforeFixedDate: (fieldDescription, dateValue) => `${capitalise(fieldDescription)} must be before ${LocalDate.parse(dateValue).format(govDateFormat)}`
+    beforeFixedDate: (fieldDescription, dateValue) => `${capitalise(fieldDescription)} must be before ${LocalDate.parse(dateValue).format(govDateFormat)}`,
+    noMatch: (fieldDescription, noMatchText) => `Your ${fieldDescription} does not match ${noMatchText || `our records`}`
   }
 
   const evalValuesFromData = (fieldObj, data) => {
@@ -157,7 +158,7 @@
       } else if (fieldObj.hasOwnProperty('maxLength') && value.length > fieldObj.maxLength) {
         errorText = errorTemplates.tooLong(fieldObj.name, fieldObj.maxLength)
       } else if (fieldObj.hasOwnProperty('regex') && !fieldObj.regex.test(value)) {
-        errorText = errorTemplates.pattern(fieldObj.name, fieldObj.patternText || 'is not valid')
+        errorText = errorTemplates.pattern(fieldObj.name, fieldObj.patternText)
       } else if (fieldObj.hasOwnProperty('evalBeforeDateValue') && !LocalDate.parse(value).isBefore(LocalDate.parse(fieldObj.evalBeforeDateValue))) {
         errorText = errorTemplates.beforeDate(fieldObj.name, fieldObj.beforeField, fieldObj.evalBeforeDateValue)
       } else if (fieldObj.hasOwnProperty('beforeToday') && !LocalDate.parse(value).isBefore(LocalDate.now())) {
@@ -168,6 +169,10 @@
         errorText = errorTemplates.afterFixedDate(fieldObj.name, fieldObj.afterFixedDate)
       } else if (fieldObj.hasOwnProperty('beforeFixedDate') && !LocalDate.parse(value).isBefore(LocalDate.parse(fieldObj.beforeFixedDate))) {
         errorText = errorTemplates.beforeFixedDate(fieldObj.name, fieldObj.beforeFixedDate)
+      } else if (fieldObj.hasOwnProperty('matches') && !fieldObj.matches.includes(value)) {
+        errorText = errorTemplates.noMatch(fieldObj.name, fieldObj.noMatchText)
+      } else if (fieldObj.hasOwnProperty('matchingExclusions') && fieldObj.matchingExclusions.includes(value)) {
+        errorText = errorTemplates.noMatch(fieldObj.name, fieldObj.noMatchText)
       }
     }
 

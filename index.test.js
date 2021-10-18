@@ -80,6 +80,7 @@ describe('validating against page models', () => {
   })
 
   test('throws pattern error when regex is not matched and field is optional', () => {
+    deleteTestFieldProperty('patternText')
     setTestField({type: 'optionalString'})
     const expectedError = validation.errorTemplates.pattern(baseModel.fields.test.name, baseModel.fields.test.patternText)
     expect(getTestFieldError({test: 'ABC123'})).toBe(expectedError)
@@ -200,6 +201,28 @@ describe('validating against page models', () => {
 
   test('does not throw an error when all array answers are valid', () => {
     expect(getTestFieldError({test: ['red', 'blue']})).toBeUndefined()
+  })
+
+  test('throws a noMatch error when input does not match', () => {
+    deleteTestFieldProperties(['validValues'])
+    setTestField({ type: 'nonEmptyString', matches: ['abc'], noMatchText: 'the reference we hold for you'})
+    const expectedError = validation.errorTemplates.noMatch(baseModel.fields.test.name, baseModel.fields.test.noMatchText)
+    expect(getTestFieldError({test: 'def'})).toBe(expectedError)
+  })
+
+  test('does not throw a noMatch error when answer is matched', () => {
+    expect(getTestFieldError({test: 'abc'})).toBeUndefined()
+  })
+
+  test('throws a noMatch error when input is in exclusions', () => {
+    deleteTestFieldProperties(['matches', 'noMatchText'])
+    setTestField({ type: 'nonEmptyString', matchingExclusions: ['abc']})
+    const expectedError = validation.errorTemplates.noMatch(baseModel.fields.test.name, baseModel.fields.test.noMatchText)
+    expect(getTestFieldError({test: 'abc'})).toBe(expectedError)
+  })
+
+  test('does not throw a noMatch error when answer is not in exclusions', () => {
+    expect(getTestFieldError({test: 'def'})).toBeUndefined()
   })
 
   test('throws a missingFile error when file is missing', () => {
