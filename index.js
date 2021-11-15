@@ -145,13 +145,13 @@
         errorText = errorTemplates.betweenMinAndMax(fieldObj.name, fieldObj.minLength, fieldObj.maxLength)
       } else if (fieldObj.hasOwnProperty('minLength') && value.length < fieldObj.minLength) {
         errorText = errorTemplates.tooShort(fieldObj.name, fieldObj.minLength)
-      } else if (fieldObj.hasOwnProperty('currencyMin') && value < fieldObj.currencyMin) {
+      } else if (fieldObj.hasOwnProperty('currencyMin') && parseFloat(value) < fieldObj.currencyMin) {
         errorText = errorTemplates.currencyMin(fieldObj.name, fieldObj.currencyMin)
       } else if (fieldObj.hasOwnProperty('numberMin') && value < fieldObj.numberMin) {
         errorText = errorTemplates.numberMin(fieldObj.name, fieldObj.numberMin)
       } else if (fieldObj.hasOwnProperty('evalNumberMaxValue') && value > fieldObj.evalNumberMaxValue) {
         errorText = errorTemplates.currencyMaxField(fieldObj.name, fieldObj.currencyMaxField, fieldObj.evalNumberMaxValue)
-      } else if (fieldObj.hasOwnProperty('currencyMax') && value > fieldObj.currencyMax) {
+      } else if (fieldObj.hasOwnProperty('currencyMax') && parseFloat(value) > fieldObj.currencyMax) {
         errorText = errorTemplates.currencyMax(fieldObj.name, fieldObj.currencyMax)
       } else if (fieldObj.hasOwnProperty('numberMax') && value > fieldObj.numberMax) {
         errorText = errorTemplates.numberMax(fieldObj.name, fieldObj.numberMax)
