@@ -64,7 +64,7 @@
     evalValuesFromData(fieldObj, payLoad)
 
     if (payLoad[fieldKey] && fieldObj.type === 'currency') {
-      payLoad[fieldKey] = payLoad[fieldKey].toString().replace(/£/, '')
+      payLoad[fieldKey] = stripCommas(payLoad[fieldKey].toString().replace(/£/, ''))
     }
 
     if (payLoad[fieldKey]) {

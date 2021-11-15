@@ -260,7 +260,7 @@ describe('validating against page models', () => {
 
   test('does not throw currencyMin error when answer is on or above the minimum amount', () => {
     expect(getTestFieldError({test: '123'})).toBeUndefined()
-    expect(getTestFieldError({test: '1234'})).toBeUndefined()
+    expect(getTestFieldError({test: '1,234'})).toBeUndefined()
   })
 
   test('throws numberMin error when answer is less than minimum amount', () => {
