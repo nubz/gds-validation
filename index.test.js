@@ -56,14 +56,14 @@ describe('validating against page models', () => {
   const getTestFieldError = data => validation.getPageErrors(data, baseModel).text.test
 
   test('does not throw error when optionalString field is empty', () => {
-    expect(validation.getPageErrors({}, baseModel).text.test).toBeUndefined()
+    expect(validation.getPageErrors({test: ''}, baseModel).text.test).toBeUndefined()
   })
 
   test('throws required error when nonEmptyString field is empty', () => {
     setTestField({type: 'nonEmptyString'})
     const expectedError = validation.errorTemplates.required(baseModel.fields.test.name)
     expect(validation.isValidPage({}, baseModel)).toBeFalsy()
-    expect(getTestFieldError({})).toBe(expectedError)
+    expect(getTestFieldError({test: ''})).toBe(expectedError)
   })
 
   test('does not return error when nonEmptyString field is valid', () => {
@@ -80,9 +80,10 @@ describe('validating against page models', () => {
   })
 
   test('throws pattern error when regex is not matched and field is optional', () => {
+    // deleting the patternText ensures use of default is covered
     deleteTestFieldProperty('patternText')
     setTestField({type: 'optionalString'})
-    const expectedError = validation.errorTemplates.pattern(baseModel.fields.test.name, baseModel.fields.test.patternText)
+    const expectedError = validation.errorTemplates.pattern(baseModel.fields.test.name)
     expect(getTestFieldError({test: 'ABC123'})).toBe(expectedError)
   })
 
@@ -191,7 +192,7 @@ describe('validating against page models', () => {
 
   test('does not throw an error when optional array is empty', () => {
     deleteTestFieldProperties(['minLength'])
-    expect(getTestFieldError({})).toBeUndefined()
+    expect(getTestFieldError({test: []})).toBeUndefined()
   })
 
   test('throws an enum error when array answer includes invalid answer', () => {
@@ -244,7 +245,7 @@ describe('validating against page models', () => {
 
   test('throws required error when currency answer is empty', () => {
     const expectedError = validation.errorTemplates.required(baseModel.fields.test.name)
-    expect(getTestFieldError({})).toBe(expectedError)
+    expect(getTestFieldError({test: ''})).toBe(expectedError)
   })
 
   test('does not throw currency error when answer is able to be converted to a currency amount', () => {

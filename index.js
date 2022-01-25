@@ -2,7 +2,6 @@
   const Locale = require('@js-joda/locale_en').Locale
   const LocalDate = require('@js-joda/core').LocalDate
   const DateTimeFormatter = require('@js-joda/core').DateTimeFormatter
-
   const govDateFormat = DateTimeFormatter.ofPattern('d MMMM uuuu').withLocale(Locale.ENGLISH)
   const addCommas = val => val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
   const stripCommas = val => val.toString().trim().replace(/,/g, '')
@@ -137,7 +136,7 @@
     }
 
     // check generic field rules
-    if (!errorText) {
+    if (!errorText && !(fieldObj.type === 'optionalString' && value.length === 0)) {
       if (fieldObj.hasOwnProperty('exactLength') && value.toString().replace(/ /g, '').length !== fieldObj.exactLength) {
         errorText = errorTemplates.exactLength(fieldObj.name, fieldObj.exactLength, fieldObj.inputType || 'characters')
       } else if (fieldObj.hasOwnProperty('minLength') && fieldObj.hasOwnProperty('maxLength') &&
