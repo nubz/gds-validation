@@ -34,7 +34,7 @@
     date: fieldDescription => `${capitalise(fieldDescription)} must be a real date`,
     beforeDate: (fieldDescription, dateField, dateValue) => `${capitalise(fieldDescription)} must be before ${dateField}, ${LocalDate.parse(dateValue).format(govDateFormat)}`,
     afterDate: (fieldDescription, dateField, dateValue) => `${capitalise(fieldDescription)} must be after ${dateField}, ${LocalDate.parse(dateValue).format(govDateFormat)}`,
-    beforeToday: fieldDescription => `${capitalise(fieldDescription)} must be before today`,
+    beforeToday: fieldDescription => `${capitalise(fieldDescription)} must be in the past`,
     afterFixedDate: (fieldDescription, dateValue) => `${capitalise(fieldDescription)} must be after ${LocalDate.parse(dateValue).format(govDateFormat)}`,
     beforeFixedDate: (fieldDescription, dateValue) => `${capitalise(fieldDescription)} must be before ${LocalDate.parse(dateValue).format(govDateFormat)}`,
     noMatch: (fieldDescription, noMatchText) => `Your ${fieldDescription} does not match ${noMatchText || `our records`}`
