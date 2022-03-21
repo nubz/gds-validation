@@ -105,8 +105,15 @@ describe('validating against page models', () => {
     const min = 3
     const max = 5
     deleteTestFieldProperty('exactLength')
-    setTestField({minLength: min, maxLength: max})
-    const expectedError = validation.errorTemplates.betweenMinAndMax(baseModel.fields.test.name, min, max)
+    setTestField({minLength: min, maxLength: max, inputType: 'digits'})
+    const expectedError = validation.errorTemplates.betweenMinAndMax(baseModel.fields.test.name, min, max, 'digits')
+    expect(getTestFieldError({test: '1'})).toBe(expectedError)
+    expect(getTestFieldError({test: '123456'})).toBe(expectedError)
+  })
+
+  test('throws betweenMinAndMax error with default input type when answer length is not between min and max', () => {
+    deleteTestFieldProperty('inputType')
+    const expectedError = validation.errorTemplates.betweenMinAndMax(baseModel.fields.test.name, 3, 5, 'characters')
     expect(getTestFieldError({test: '1'})).toBe(expectedError)
     expect(getTestFieldError({test: '123456'})).toBe(expectedError)
   })
@@ -117,7 +124,14 @@ describe('validating against page models', () => {
 
   test('throws tooShort error when answer is shorter than minimum length', () => {
     deleteTestFieldProperty('maxLength')
-    const expectedError = validation.errorTemplates.tooShort(baseModel.fields.test.name, 3)
+    setTestField({inputType: 'digits'})
+    const expectedError = validation.errorTemplates.tooShort(baseModel.fields.test.name, 3, 'digits')
+    expect(getTestFieldError({test: '12'})).toBe(expectedError)
+  })
+
+  test('throws tooShort error with default input type when answer is shorter than minimum length', () => {
+    deleteTestFieldProperty('inputType')
+    const expectedError = validation.errorTemplates.tooShort(baseModel.fields.test.name, 3, 'characters')
     expect(getTestFieldError({test: '12'})).toBe(expectedError)
   })
 
@@ -129,9 +143,16 @@ describe('validating against page models', () => {
   test('throws tooLong error when answer is longer than maximum length', () => {
     deleteTestFieldProperty('minLength')
     setTestField({
-      maxLength: 5
+      maxLength: 5,
+      inputType: 'digits'
     })
-    const expectedError = validation.errorTemplates.tooLong(baseModel.fields.test.name, 5)
+    const expectedError = validation.errorTemplates.tooLong(baseModel.fields.test.name, 5, 'digits')
+    expect(getTestFieldError({test: '123456'})).toBe(expectedError)
+  })
+
+  test('throws tooLong error with default input type when answer is longer than maximum length', () => {
+    deleteTestFieldProperty('inputType')
+    const expectedError = validation.errorTemplates.tooLong(baseModel.fields.test.name, 5, 'characters')
     expect(getTestFieldError({test: '123456'})).toBe(expectedError)
   })
 

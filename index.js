@@ -17,9 +17,9 @@
   const slugify = str => str.toLowerCase().replace(/\W+/g, '-').replace(/-$/, '')
   const errorTemplates = {
     required: fieldDescription => `Enter ${fieldDescription}`,
-    betweenMinAndMax: (fieldDescription, min, max) => `${capitalise(fieldDescription)} must be between ${min} and ${max} characters`,
-    tooShort: (fieldDescription, min) => `${capitalise(fieldDescription)} must must be ${min} characters or more`,
-    tooLong: (fieldDescription, max) => `${capitalise(fieldDescription)} must be ${max} characters or fewer`,
+    betweenMinAndMax: (fieldDescription, min, max, type) => `${capitalise(fieldDescription)} must be between ${min} and ${max} ${type}`,
+    tooShort: (fieldDescription, min, type) => `${capitalise(fieldDescription)} must must be ${min} ${type} or more`,
+    tooLong: (fieldDescription, max, type) => `${capitalise(fieldDescription)} must be ${max} ${type} or fewer`,
     exactLength: (fieldDescription, len, type) => `${capitalise(fieldDescription)} must be ${len} ${type}`,
     number: fieldDescription => `${capitalise(fieldDescription)} must be a number`,
     currency: fieldDescription => `${capitalise(fieldDescription)} must be an amount of money`,
@@ -141,9 +141,9 @@
         errorText = errorTemplates.exactLength(fieldObj.name, fieldObj.exactLength, fieldObj.inputType || 'characters')
       } else if (fieldObj.hasOwnProperty('minLength') && fieldObj.hasOwnProperty('maxLength') &&
         (value.length < fieldObj.minLength || value.length > fieldObj.maxLength)) {
-        errorText = errorTemplates.betweenMinAndMax(fieldObj.name, fieldObj.minLength, fieldObj.maxLength)
+        errorText = errorTemplates.betweenMinAndMax(fieldObj.name, fieldObj.minLength, fieldObj.maxLength, fieldObj.inputType || 'characters')
       } else if (fieldObj.hasOwnProperty('minLength') && value.length < fieldObj.minLength) {
-        errorText = errorTemplates.tooShort(fieldObj.name, fieldObj.minLength)
+        errorText = errorTemplates.tooShort(fieldObj.name, fieldObj.minLength, fieldObj.inputType || 'characters')
       } else if (fieldObj.hasOwnProperty('currencyMin') && parseFloat(value) < fieldObj.currencyMin) {
         errorText = errorTemplates.currencyMin(fieldObj.name, fieldObj.currencyMin)
       } else if (fieldObj.hasOwnProperty('numberMin') && value < fieldObj.numberMin) {
@@ -155,7 +155,7 @@
       } else if (fieldObj.hasOwnProperty('numberMax') && value > fieldObj.numberMax) {
         errorText = errorTemplates.numberMax(fieldObj.name, fieldObj.numberMax)
       } else if (fieldObj.hasOwnProperty('maxLength') && value.length > fieldObj.maxLength) {
-        errorText = errorTemplates.tooLong(fieldObj.name, fieldObj.maxLength)
+        errorText = errorTemplates.tooLong(fieldObj.name, fieldObj.maxLength, fieldObj.inputType || 'characters')
       } else if (fieldObj.hasOwnProperty('regex') && !fieldObj.regex.test(value)) {
         errorText = errorTemplates.pattern(fieldObj.name, fieldObj.patternText)
       } else if (fieldObj.hasOwnProperty('evalBeforeDateValue') && !LocalDate.parse(value).isBefore(LocalDate.parse(fieldObj.evalBeforeDateValue))) {
