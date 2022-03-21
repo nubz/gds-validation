@@ -50,8 +50,8 @@ describe('validating against page models', () => {
     }
   }
 
-  const deleteTestFieldProperty = field => delete baseModel.fields.test[field]
-  const deleteTestFieldProperties = fields => fields.forEach(deleteTestFieldProperty)
+  const deleteTestFieldProperty = prop => delete baseModel.fields.test[prop]
+  const deleteTestFieldProperties = props => props.forEach(deleteTestFieldProperty)
   const setTestField = settings => baseModel.fields.test = {...baseModel.fields.test, ...settings}
   const getTestFieldError = data => validation.getPageErrors(data, baseModel).text.test
 
@@ -101,10 +101,15 @@ describe('validating against page models', () => {
     expect(getTestFieldError({test: '123'})).toBeUndefined()
   })
 
+  test('does not throw error when exact length is met after transform', () => {
+    setTestField({transform: data => data.test.replace(/-/g, '').replace(/\s/g, '')})
+    expect(getTestFieldError({test: '1-2 3'})).toBeUndefined()
+  })
+
   test('throws betweenMinAndMax error when answer length is not between min and max', () => {
     const min = 3
     const max = 5
-    deleteTestFieldProperty('exactLength')
+    deleteTestFieldProperties(['exactLength', 'transform'])
     setTestField({minLength: min, maxLength: max, inputType: 'digits'})
     const expectedError = validation.errorTemplates.betweenMinAndMax(baseModel.fields.test.name, min, max, 'digits')
     expect(getTestFieldError({test: '1'})).toBe(expectedError)

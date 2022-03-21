@@ -41,7 +41,11 @@
     noMatch: (fieldDescription, noMatchText) => `Your ${fieldDescription} does not match ${noMatchText || `our records`}`
   }
 
-  const evalValuesFromData = (fieldObj, data) => {
+  const evalValuesFromData = (data, fieldObj, fieldKey) => {
+    if (typeof fieldObj.transform === 'function') {
+      data[fieldKey] = fieldObj.transform(data)
+    }
+
     if (typeof fieldObj.getMaxCurrencyFromField === 'function') {
       fieldObj.evalNumberMaxValue = fieldObj.getMaxCurrencyFromField(data)
     }
@@ -61,7 +65,7 @@
       return true
     }
 
-    evalValuesFromData(fieldObj, payLoad)
+    evalValuesFromData(payLoad, fieldObj, fieldKey)
 
     if (payLoad[fieldKey] && fieldObj.type === 'currency') {
       payLoad[fieldKey] = stripCommas(payLoad[fieldKey].toString().replace(/£/, ''))
