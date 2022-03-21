@@ -18,6 +18,7 @@
   const errorTemplates = {
     required: fieldDescription => `Enter ${fieldDescription}`,
     betweenMinAndMax: (fieldDescription, min, max, type) => `${capitalise(fieldDescription)} must be between ${min} and ${max} ${type}`,
+    betweenMinAndMaxNumbers: (fieldDescription, min, max) => `${capitalise(fieldDescription)} must be between ${min} and ${max}`,
     tooShort: (fieldDescription, min, type) => `${capitalise(fieldDescription)} must must be ${min} ${type} or more`,
     tooLong: (fieldDescription, max, type) => `${capitalise(fieldDescription)} must be ${max} ${type} or fewer`,
     exactLength: (fieldDescription, len, type) => `${capitalise(fieldDescription)} must be ${len} ${type}`,
@@ -146,6 +147,9 @@
         errorText = errorTemplates.tooShort(fieldObj.name, fieldObj.minLength, fieldObj.inputType || 'characters')
       } else if (fieldObj.hasOwnProperty('currencyMin') && parseFloat(value) < fieldObj.currencyMin) {
         errorText = errorTemplates.currencyMin(fieldObj.name, fieldObj.currencyMin)
+      } else if (fieldObj.hasOwnProperty('numberMin') && fieldObj.hasOwnProperty('numberMax') &&
+          (value < fieldObj.numberMin || value > fieldObj.numberMax)) {
+        errorText = errorTemplates.betweenMinAndMaxNumbers(fieldObj.name, fieldObj.numberMin, fieldObj.numberMax)
       } else if (fieldObj.hasOwnProperty('numberMin') && value < fieldObj.numberMin) {
         errorText = errorTemplates.numberMin(fieldObj.name, fieldObj.numberMin)
       } else if (fieldObj.hasOwnProperty('evalNumberMaxValue') && value > fieldObj.evalNumberMaxValue) {

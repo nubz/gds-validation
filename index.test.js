@@ -285,9 +285,20 @@ describe('validating against page models', () => {
     expect(getTestFieldError({test: '1,234'})).toBeUndefined()
   })
 
-  test('throws numberMin error when answer is less than minimum amount', () => {
+  test('throws betweenMinAndMaxNumbers error when answer is less than minimum amount ', () => {
     deleteTestFieldProperty('currencyMin')
-    setTestField({type: 'number', numberMin: 50})
+    setTestField({type: 'number', numberMin: 50, numberMax: 100})
+    const expectedError = validation.errorTemplates.betweenMinAndMaxNumbers(baseModel.fields.test.name, 50, 100)
+    expect(getTestFieldError({test: 12})).toBe(expectedError)
+  })
+
+  test('throws betweenMinAndMaxNumbers error when answer is more than maximum amount ', () => {
+    const expectedError = validation.errorTemplates.betweenMinAndMaxNumbers(baseModel.fields.test.name, 50, 100)
+    expect(getTestFieldError({test: 120})).toBe(expectedError)
+  })
+
+  test('throws numberMin error when answer is less than minimum amount', () => {
+    deleteTestFieldProperty('numberMax')
     const expectedError = validation.errorTemplates.numberMin(baseModel.fields.test.name, 50)
     expect(getTestFieldError({test: 12})).toBe(expectedError)
   })
