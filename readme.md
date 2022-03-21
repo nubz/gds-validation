@@ -105,6 +105,7 @@ interface Errors {
   summary: Array<Error>
   inline: InlineErrors
   text: ErrorMessages
+  hasErrors: Boolean
 }
 interface Error {
   id: String
@@ -142,7 +143,7 @@ router.post('/test-page', (req, res) => {
     }
   })
   
-  if (errors.summary.length > 0) {
+  if (errors.hasErrors) {
     res.render('/test-page', {
       errors: errors
     })
