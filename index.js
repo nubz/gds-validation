@@ -204,9 +204,10 @@
         list.summary = [...list.summary, error]
         list.inline[next] = error
         list.text[next] = error.text
+        list.hasErrors = true
       }
       return list
-    }, {summary: [], inline: {}, text: {}})
+    }, {summary: [], inline: {}, text: {}, hasErrors: false})
 
 
   module.exports = {
