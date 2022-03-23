@@ -13,46 +13,47 @@
       Math.abs(asFloat).toFixed(2) :
       Math.abs(parseInt(withoutCommas)))}`
   }
+  const inputType = field => field.inputType || 'characters'
   const capitalise = word => word.charAt(0).toUpperCase() + word.slice(1)
   const slugify = str => str.toLowerCase().replace(/\W+/g, '-').replace(/-$/, '')
   const errorTemplates = {
-    required: fieldDescription => `Enter ${fieldDescription}`,
-    betweenMinAndMax: (fieldDescription, min, max, type) => `${capitalise(fieldDescription)} must be between ${min} and ${max} ${type}`,
-    betweenMinAndMaxNumbers: (fieldDescription, min, max) => `${capitalise(fieldDescription)} must be between ${min} and ${max}`,
-    tooShort: (fieldDescription, min, type) => `${capitalise(fieldDescription)} must must be ${min} ${type} or more`,
-    tooLong: (fieldDescription, max, type) => `${capitalise(fieldDescription)} must be ${max} ${type} or fewer`,
-    exactLength: (fieldDescription, len, type) => `${capitalise(fieldDescription)} must be ${len} ${type}`,
-    number: fieldDescription => `${capitalise(fieldDescription)} must be a number`,
-    currency: fieldDescription => `${capitalise(fieldDescription)} must be an amount of money`,
-    numberMin: (fieldDescription, min) => `${capitalise(fieldDescription)} must be ${min} or more`,
-    currencyMin: (fieldDescription, min) => `${capitalise(fieldDescription)} must be ${currencyDisplay(min)} or more`,
-    numberMax: (fieldDescription, max) => `${capitalise(fieldDescription)} must be ${max} or less`,
-    currencyMax: (fieldDescription, max) => `${capitalise(fieldDescription)} must be ${currencyDisplay(max)} or less`,
-    currencyMaxField: (fieldDescription, maxField, maxValue) => `${capitalise(fieldDescription)} must not be more than the value of ${maxField} which is ${currencyDisplay(maxValue)}`,
-    pattern: (fieldDescription, patternText) => `${patternText || fieldDescription + ` is not valid`}`,
-    enum: fieldDescription => `Select ${fieldDescription}`,
-    missingFile: fieldDescription => `Upload ${fieldDescription}`,
-    date: fieldDescription => `${capitalise(fieldDescription)} must be a real date`,
-    beforeDate: (fieldDescription, dateField, dateValue) => `${capitalise(fieldDescription)} must be before ${dateField}, ${LocalDate.parse(dateValue).format(govDateFormat)}`,
-    afterDate: (fieldDescription, dateField, dateValue) => `${capitalise(fieldDescription)} must be after ${dateField}, ${LocalDate.parse(dateValue).format(govDateFormat)}`,
-    beforeToday: fieldDescription => `${capitalise(fieldDescription)} must be in the past`,
-    afterFixedDate: (fieldDescription, dateValue) => `${capitalise(fieldDescription)} must be after ${LocalDate.parse(dateValue).format(govDateFormat)}`,
-    beforeFixedDate: (fieldDescription, dateValue) => `${capitalise(fieldDescription)} must be before ${LocalDate.parse(dateValue).format(govDateFormat)}`,
-    noMatch: (fieldDescription, noMatchText) => `Your ${fieldDescription} does not match ${noMatchText || `our records`}`
+    required: field => `Enter ${field.name}`,
+    betweenMinAndMax: field => `${capitalise(field.name)} must be between ${field.minLength} and ${field.maxLength} ${inputType(field)}`,
+    betweenMinAndMaxNumbers: field => `${capitalise(field.name)} must be between ${field.numberMin} and ${field.numberMax}`,
+    tooShort: field => `${capitalise(field.name)} must must be ${field.minLength} ${inputType(field)} or more`,
+    tooLong: field => `${capitalise(field.name)} must be ${field.maxLength} ${inputType(field)} or fewer`,
+    exactLength: field => `${capitalise(field.name)} must be ${field.exactLength} ${inputType(field)}`,
+    number: field => `${capitalise(field.name)} must be a number`,
+    currency: field => `${capitalise(field.name)} must be an amount of money`,
+    numberMin: field => `${capitalise(field.name)} must be ${field.numberMin} or more`,
+    currencyMin: field => `${capitalise(field.name)} must be ${currencyDisplay(field.currencyMin)} or more`,
+    numberMax: field => `${capitalise(field.name)} must be ${field.numberMax} or less`,
+    currencyMax: field => `${capitalise(field.name)} must be ${currencyDisplay(field.currencyMax)} or less`,
+    currencyMaxField: field => `${capitalise(field.name)} must not be more than the value of ${field.currencyMaxField} which is ${currencyDisplay(field.evalNumberMaxValue)}`,
+    pattern: field => `${field.patternText || field.name + ` is not valid`}`,
+    enum: field => `Select ${field.name}`,
+    missingFile: field => `Upload ${field.name}`,
+    date: field => `${capitalise(field.name)} must be a real date`,
+    beforeDate: field => `${capitalise(field.name)} must be before ${field.beforeField}, ${LocalDate.parse(field.evalBeforeDateValue).format(govDateFormat)}`,
+    afterDate: field => `${capitalise(field.name)} must be after ${field.afterField}, ${LocalDate.parse(field.evalAfterDateValue).format(govDateFormat)}`,
+    beforeToday: field => `${capitalise(field.name)} must be in the past`,
+    afterFixedDate: field => `${capitalise(field.name)} must be after ${LocalDate.parse(field.afterFixedDate).format(govDateFormat)}`,
+    beforeFixedDate: field => `${capitalise(field.name)} must be before ${LocalDate.parse(field.beforeFixedDate).format(govDateFormat)}`,
+    noMatch: field => `${capitalise(field.name)} does not match ${field.noMatchText || `our records`}`
   }
 
-  const evalValuesFromData = (data, fieldObj) => {
+  const evalValuesFromData = (data, field) => {
 
-    if (typeof fieldObj.getMaxCurrencyFromField === 'function') {
-      fieldObj.evalNumberMaxValue = fieldObj.getMaxCurrencyFromField(data)
+    if (typeof field.getMaxCurrencyFromField === 'function') {
+      field.evalNumberMaxValue = field.getMaxCurrencyFromField(data)
     }
 
-    if (typeof fieldObj.afterDateField === 'function') {
-      fieldObj.evalAfterDateValue = fieldObj.afterDateField(data)
+    if (typeof field.afterDateField === 'function') {
+      field.evalAfterDateValue = field.afterDateField(data)
     }
 
-    if (typeof fieldObj.beforeDateField === 'function') {
-      fieldObj.evalBeforeDateValue = fieldObj.beforeDateField(data)
+    if (typeof field.beforeDateField === 'function') {
+      field.evalBeforeDateValue = field.beforeDateField(data)
     }
   }
 
@@ -91,14 +92,18 @@
     }
   }
 
-  const validationError = (fieldObj, value, fieldKey) => {
+  const errorMessage = (errorKey, field) => field.hasOwnProperty('errors') && field.errors.hasOwnProperty(errorKey) ?
+      (typeof field.errors[errorKey] === 'function' ? field.errors[errorKey](field) : field.errors[errorKey]) :
+      errorTemplates[errorKey](field)
+
+  const validationError = (field, value, fieldKey) => {
     let errorText
-    switch (fieldObj.type) {
+    switch (field.type) {
       case 'date':
         if (!value) {
-          errorText = errorTemplates.required(fieldObj.name)
+          errorText = errorMessage('required', field)
         } else if (!isValidDate(value)) {
-          errorText = errorTemplates.date(fieldObj.name)
+          errorText = errorMessage('date', field)
         }
         break
       case 'optionalString':
@@ -106,105 +111,105 @@
       case 'nonEmptyString':
       default:
         if (!value || !value.length) {
-          errorText = errorTemplates.required(fieldObj.name)
+          errorText = errorMessage('required', field)
         }
         break
       case 'enum':
-        if (!value || !fieldObj.validValues.includes(value)) {
-          errorText = errorTemplates.enum(fieldObj.name)
+        if (!value || !field.validValues.includes(value)) {
+          errorText = errorMessage('enum', field)
         }
         break
       case 'array':
-        if ((fieldObj.minLength && (!value || value.length < fieldObj.minLength)) ||
-          (fieldObj.validValues && Array.isArray(value) && !value.every(v => fieldObj.validValues.includes(v)))) {
-          errorText = errorTemplates.enum(fieldObj.name)
+        if ((field.minLength && (!value || value.length < field.minLength)) ||
+          (field.validValues && Array.isArray(value) && !value.every(v => field.validValues.includes(v)))) {
+          errorText = errorMessage('enum', field)
         }
         break
       case 'number':
         if (!value) {
-          errorText = errorTemplates.required(fieldObj.name)
+          errorText = errorMessage('required', field)
         } else if (isNaN(+value)) {
-          errorText = errorTemplates.number(fieldObj.name)
+          errorText = errorMessage('number', field)
         }
         break
       case 'currency':
         if (!value || typeof value === 'undefined') {
-          errorText = errorTemplates.required(fieldObj.name)
+          errorText = errorMessage('required', field)
         } else if (!/^[0-9,]+(\.[0-9]{1,2})?$/.test(value.toString())) {
-          errorText = errorTemplates.currency(fieldObj.name)
+          errorText = errorMessage('currency', field)
         }
         break
       case 'file':
         if (!value || !value.length) {
-          errorText = errorTemplates.missingFile(fieldObj.name)
+          errorText = errorMessage('missingFile', field)
         }
         break
     }
 
     // check generic field rules
-    if (!errorText && !(fieldObj.type === 'optionalString' && value.length === 0)) {
-      if (fieldObj.hasOwnProperty('exactLength') && value.toString().replace(/ /g, '').length !== fieldObj.exactLength) {
-        errorText = errorTemplates.exactLength(fieldObj.name, fieldObj.exactLength, fieldObj.inputType || 'characters')
-      } else if (fieldObj.hasOwnProperty('minLength') && fieldObj.hasOwnProperty('maxLength') &&
-        (value.length < fieldObj.minLength || value.length > fieldObj.maxLength)) {
-        errorText = errorTemplates.betweenMinAndMax(fieldObj.name, fieldObj.minLength, fieldObj.maxLength, fieldObj.inputType || 'characters')
-      } else if (fieldObj.hasOwnProperty('minLength') && value.length < fieldObj.minLength) {
-        errorText = errorTemplates.tooShort(fieldObj.name, fieldObj.minLength, fieldObj.inputType || 'characters')
-      } else if (fieldObj.hasOwnProperty('currencyMin') && parseFloat(value) < fieldObj.currencyMin) {
-        errorText = errorTemplates.currencyMin(fieldObj.name, fieldObj.currencyMin)
-      } else if (fieldObj.hasOwnProperty('numberMin') && fieldObj.hasOwnProperty('numberMax') &&
-          (value < fieldObj.numberMin || value > fieldObj.numberMax)) {
-        errorText = errorTemplates.betweenMinAndMaxNumbers(fieldObj.name, fieldObj.numberMin, fieldObj.numberMax)
-      } else if (fieldObj.hasOwnProperty('numberMin') && value < fieldObj.numberMin) {
-        errorText = errorTemplates.numberMin(fieldObj.name, fieldObj.numberMin)
-      } else if (fieldObj.hasOwnProperty('evalNumberMaxValue') && value > fieldObj.evalNumberMaxValue) {
-        errorText = errorTemplates.currencyMaxField(fieldObj.name, fieldObj.currencyMaxField, fieldObj.evalNumberMaxValue)
-      } else if (fieldObj.hasOwnProperty('currencyMax') && parseFloat(value) > fieldObj.currencyMax) {
-        errorText = errorTemplates.currencyMax(fieldObj.name, fieldObj.currencyMax)
-      } else if (fieldObj.hasOwnProperty('numberMax') && value > fieldObj.numberMax) {
-        errorText = errorTemplates.numberMax(fieldObj.name, fieldObj.numberMax)
-      } else if (fieldObj.hasOwnProperty('maxLength') && value.length > fieldObj.maxLength) {
-        errorText = errorTemplates.tooLong(fieldObj.name, fieldObj.maxLength, fieldObj.inputType || 'characters')
-      } else if (fieldObj.hasOwnProperty('regex') && !fieldObj.regex.test(value)) {
-        errorText = errorTemplates.pattern(fieldObj.name, fieldObj.patternText)
-      } else if (fieldObj.hasOwnProperty('evalBeforeDateValue') && !LocalDate.parse(value).isBefore(LocalDate.parse(fieldObj.evalBeforeDateValue))) {
-        errorText = errorTemplates.beforeDate(fieldObj.name, fieldObj.beforeField, fieldObj.evalBeforeDateValue)
-      } else if (fieldObj.hasOwnProperty('beforeToday') && !LocalDate.parse(value).isBefore(LocalDate.now())) {
-        errorText = errorTemplates.beforeToday(fieldObj.name)
-      } else if (fieldObj.hasOwnProperty('evalAfterDateValue') && !LocalDate.parse(value).isAfter(LocalDate.parse(fieldObj.evalAfterDateValue))) {
-        errorText = errorTemplates.afterDate(fieldObj.name, fieldObj.afterField, fieldObj.evalAfterDateValue)
-      } else if (fieldObj.hasOwnProperty('afterFixedDate') && !LocalDate.parse(value).isAfter(LocalDate.parse(fieldObj.afterFixedDate))) {
-        errorText = errorTemplates.afterFixedDate(fieldObj.name, fieldObj.afterFixedDate)
-      } else if (fieldObj.hasOwnProperty('beforeFixedDate') && !LocalDate.parse(value).isBefore(LocalDate.parse(fieldObj.beforeFixedDate))) {
-        errorText = errorTemplates.beforeFixedDate(fieldObj.name, fieldObj.beforeFixedDate)
-      } else if (fieldObj.hasOwnProperty('matches') && !fieldObj.matches.includes(value)) {
-        errorText = errorTemplates.noMatch(fieldObj.name, fieldObj.noMatchText)
-      } else if (fieldObj.hasOwnProperty('matchingExclusions') && fieldObj.matchingExclusions.includes(value)) {
-        errorText = errorTemplates.noMatch(fieldObj.name, fieldObj.noMatchText)
+    if (!errorText && !(field.type === 'optionalString' && value.length === 0)) {
+      if (field.hasOwnProperty('exactLength') && value.toString().replace(/ /g, '').length !== field.exactLength) {
+        errorText = errorMessage('exactLength', field)
+      } else if (field.hasOwnProperty('minLength') && field.hasOwnProperty('maxLength') &&
+        (value.length < field.minLength || value.length > field.maxLength)) {
+        errorText = errorMessage('betweenMinAndMax', field)
+      } else if (field.hasOwnProperty('maxLength') && value.length > field.maxLength) {
+        errorText = errorMessage('tooLong', field)
+      } else if (field.hasOwnProperty('minLength') && value.length < field.minLength) {
+        errorText = errorMessage('tooShort', field)
+      } else if (field.hasOwnProperty('currencyMin') && parseFloat(value) < field.currencyMin) {
+        errorText = errorMessage('currencyMin', field)
+      } else if (field.hasOwnProperty('numberMin') && field.hasOwnProperty('numberMax') &&
+          (value < field.numberMin || value > field.numberMax)) {
+        errorText = errorMessage('betweenMinAndMaxNumbers', field)
+      } else if (field.hasOwnProperty('numberMin') && value < field.numberMin) {
+        errorText = errorMessage('numberMin', field)
+      } else if (field.hasOwnProperty('evalNumberMaxValue') && value > field.evalNumberMaxValue) {
+        errorText = errorMessage('currencyMaxField', field)
+      } else if (field.hasOwnProperty('currencyMax') && parseFloat(value) > field.currencyMax) {
+        errorText = errorMessage('currencyMax', field)
+      } else if (field.hasOwnProperty('numberMax') && value > field.numberMax) {
+        errorText = errorMessage('numberMax', field)
+      } else if (field.hasOwnProperty('regex') && !field.regex.test(value)) {
+        errorText = errorMessage('pattern', field)
+      } else if (field.hasOwnProperty('evalBeforeDateValue') && !LocalDate.parse(value).isBefore(LocalDate.parse(field.evalBeforeDateValue))) {
+        errorText = errorMessage('beforeDate', field)
+      } else if (field.hasOwnProperty('beforeToday') && !LocalDate.parse(value).isBefore(LocalDate.now())) {
+        errorText = errorMessage('beforeToday', field)
+      } else if (field.hasOwnProperty('evalAfterDateValue') && !LocalDate.parse(value).isAfter(LocalDate.parse(field.evalAfterDateValue))) {
+        errorText = errorMessage('afterDate', field)
+      } else if (field.hasOwnProperty('afterFixedDate') && !LocalDate.parse(value).isAfter(LocalDate.parse(field.afterFixedDate))) {
+        errorText = errorMessage('afterFixedDate', field)
+      } else if (field.hasOwnProperty('beforeFixedDate') && !LocalDate.parse(value).isBefore(LocalDate.parse(field.beforeFixedDate))) {
+        errorText = errorMessage('beforeFixedDate', field)
+      } else if (field.hasOwnProperty('matches') && !field.matches.includes(value)) {
+        errorText = errorMessage('noMatch', field)
+      } else if (field.hasOwnProperty('matchingExclusions') && field.matchingExclusions.includes(value)) {
+        errorText = errorMessage('noMatch', field)
       }
     }
 
     return errorText ? {
       id: fieldKey,
-      href: '#' + buildHref(fieldKey, fieldObj),
+      href: '#' + buildHref(fieldKey, field),
       text: errorText
     } : null
   }
 
-  const isValidFieldWrapper = (payLoad, pageObj) => fieldKey =>
-    isValidField(payLoad, pageObj.fields[fieldKey], fieldKey)
+  const isValidFieldWrapper = (payLoad, page) => fieldKey =>
+    isValidField(payLoad, page.fields[fieldKey], fieldKey)
 
-  const isValidPage = (payLoad, pageObj) =>
-    Object.keys(pageObj.fields).every(isValidFieldWrapper(payLoad, pageObj))
+  const isValidPage = (payLoad, page) =>
+    Object.keys(page.fields).every(isValidFieldWrapper(payLoad, page))
 
-  const isValidPageWrapper = data => pageObj =>
-    Object.keys(pageObj.fields).every(isValidFieldWrapper(data, pageObj))
+  const isValidPageWrapper = data => page =>
+    Object.keys(page.fields).every(isValidFieldWrapper(data, page))
 
-  const getPageErrors = (data, pageObj) =>
-    Object.keys(pageObj.fields)
+  const getPageErrors = (data, page) =>
+    Object.keys(page.fields)
     .reduce((list, next) => {
-      const error = !isValidField(data, pageObj.fields[next], next) &&
-        validationError(pageObj.fields[next], data[next], next)
+      const error = !isValidField(data, page.fields[next], next) &&
+        validationError(page.fields[next], data[next], next)
       if (error) {
         list.summary = [...list.summary, error]
         list.inline[next] = error
@@ -225,5 +230,6 @@
     getPageErrors,
     isValidPageWrapper,
     isValidPage,
-    isValidField
+    isValidField,
+    errorMessage
   }

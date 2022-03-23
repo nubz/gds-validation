@@ -61,7 +61,7 @@ describe('validating against page models', () => {
 
   test('throws required error when nonEmptyString field is empty', () => {
     setTestField({type: 'nonEmptyString'})
-    const expectedError = validation.errorTemplates.required(baseModel.fields.test.name)
+    const expectedError = validation.errorMessage('required', baseModel.fields.test)
     expect(validation.isValidPage({}, baseModel)).toBeFalsy()
     expect(getTestFieldError({test: ''})).toBe(expectedError)
   })
@@ -75,7 +75,7 @@ describe('validating against page models', () => {
       regex: /^[0-9]*$/,
       patternText: 'Test name must only include numbers'
     })
-    const expectedError = validation.errorTemplates.pattern(baseModel.fields.test.name, baseModel.fields.test.patternText)
+    const expectedError = validation.errorMessage('pattern', baseModel.fields.test)
     expect(getTestFieldError({test: 'ABC123'})).toBe(expectedError)
   })
 
@@ -83,7 +83,7 @@ describe('validating against page models', () => {
     // deleting the patternText ensures use of default is covered
     deleteTestFieldProperty('patternText')
     setTestField({type: 'optionalString'})
-    const expectedError = validation.errorTemplates.pattern(baseModel.fields.test.name)
+    const expectedError = validation.errorMessage('pattern', baseModel.fields.test)
     expect(getTestFieldError({test: 'ABC123'})).toBe(expectedError)
   })
 
@@ -93,7 +93,7 @@ describe('validating against page models', () => {
 
   test('throws exactLength error when exact length is not met', () => {
     setTestField({exactLength: 3})
-    const expectedError = validation.errorTemplates.exactLength(baseModel.fields.test.name, baseModel.fields.test.exactLength, 'characters')
+    const expectedError = validation.errorMessage('exactLength', baseModel.fields.test)
     expect(getTestFieldError({test: 'ABC123'})).toBe(expectedError)
   })
 
@@ -111,14 +111,14 @@ describe('validating against page models', () => {
     const max = 5
     deleteTestFieldProperties(['exactLength', 'transform'])
     setTestField({minLength: min, maxLength: max, inputType: 'digits'})
-    const expectedError = validation.errorTemplates.betweenMinAndMax(baseModel.fields.test.name, min, max, 'digits')
+    const expectedError = validation.errorMessage('betweenMinAndMax', baseModel.fields.test)
     expect(getTestFieldError({test: '1'})).toBe(expectedError)
     expect(getTestFieldError({test: '123456'})).toBe(expectedError)
   })
 
   test('throws betweenMinAndMax error with default input type when answer length is not between min and max', () => {
     deleteTestFieldProperty('inputType')
-    const expectedError = validation.errorTemplates.betweenMinAndMax(baseModel.fields.test.name, 3, 5, 'characters')
+    const expectedError = validation.errorMessage('betweenMinAndMax', baseModel.fields.test)
     expect(getTestFieldError({test: '1'})).toBe(expectedError)
     expect(getTestFieldError({test: '123456'})).toBe(expectedError)
   })
@@ -130,13 +130,13 @@ describe('validating against page models', () => {
   test('throws tooShort error when answer is shorter than minimum length', () => {
     deleteTestFieldProperty('maxLength')
     setTestField({inputType: 'digits'})
-    const expectedError = validation.errorTemplates.tooShort(baseModel.fields.test.name, 3, 'digits')
+    const expectedError = validation.errorMessage('tooShort', baseModel.fields.test)
     expect(getTestFieldError({test: '12'})).toBe(expectedError)
   })
 
   test('throws tooShort error with default input type when answer is shorter than minimum length', () => {
     deleteTestFieldProperty('inputType')
-    const expectedError = validation.errorTemplates.tooShort(baseModel.fields.test.name, 3, 'characters')
+    const expectedError = validation.errorMessage('tooShort', baseModel.fields.test)
     expect(getTestFieldError({test: '12'})).toBe(expectedError)
   })
 
@@ -151,13 +151,13 @@ describe('validating against page models', () => {
       maxLength: 5,
       inputType: 'digits'
     })
-    const expectedError = validation.errorTemplates.tooLong(baseModel.fields.test.name, 5, 'digits')
+    const expectedError = validation.errorMessage('tooLong', baseModel.fields.test)
     expect(getTestFieldError({test: '123456'})).toBe(expectedError)
   })
 
   test('throws tooLong error with default input type when answer is longer than maximum length', () => {
     deleteTestFieldProperty('inputType')
-    const expectedError = validation.errorTemplates.tooLong(baseModel.fields.test.name, 5, 'characters')
+    const expectedError = validation.errorMessage('tooLong', baseModel.fields.test)
     expect(getTestFieldError({test: '123456'})).toBe(expectedError)
   })
 
@@ -169,12 +169,12 @@ describe('validating against page models', () => {
   test('throws number error when answer is not a number', () => {
     deleteTestFieldProperties(['maxLength', 'regex', 'patternText'])
     setTestField({ type: 'number'})
-    const expectedError = validation.errorTemplates.number(baseModel.fields.test.name)
+    const expectedError = validation.errorMessage('number', baseModel.fields.test)
     expect(getTestFieldError({test: 'twelve'})).toBe(expectedError)
   })
 
   test('throws required error when number answer is empty', () => {
-    const expectedError = validation.errorTemplates.required(baseModel.fields.test.name)
+    const expectedError = validation.errorMessage('required', baseModel.fields.test)
     expect(getTestFieldError({})).toBe(expectedError)
   })
 
@@ -185,12 +185,12 @@ describe('validating against page models', () => {
 
   test('throws an enum error when required enum answer is empty', () => {
     setTestField({ type: 'enum', validValues: ['yes', 'no'] })
-    const expectedError = validation.errorTemplates.enum(baseModel.fields.test.name)
+    const expectedError = validation.errorMessage('enum', baseModel.fields.test)
     expect(getTestFieldError({})).toBe(expectedError)
   })
 
   test('throws an enum error when enum answer is not a valid value', () => {
-    const expectedError = validation.errorTemplates.enum(baseModel.fields.test.name)
+    const expectedError = validation.errorMessage('enum', baseModel.fields.test)
     expect(getTestFieldError({test: 'maybe'})).toBe(expectedError)
   })
 
@@ -206,13 +206,13 @@ describe('validating against page models', () => {
 
   test('throws an enum error when required array answer is empty', () => {
     setTestField({ type: 'array', name: 'all colours you like', validValues: ['red', 'blue', 'green'], minLength: 1 })
-    const expectedError = validation.errorTemplates.enum(baseModel.fields.test.name)
+    const expectedError = validation.errorMessage('enum', baseModel.fields.test)
     expect(getTestFieldError({})).toBe(expectedError)
   })
 
   test('throws an enum error when not enough answers in array', () => {
     setTestField({ minLength: 2 })
-    const expectedError = validation.errorTemplates.enum(baseModel.fields.test.name)
+    const expectedError = validation.errorMessage('enum', baseModel.fields.test)
     expect(getTestFieldError({test: ['red']})).toBe(expectedError)
   })
 
@@ -222,7 +222,7 @@ describe('validating against page models', () => {
   })
 
   test('throws an enum error when array answer includes invalid answer', () => {
-    const expectedError = validation.errorTemplates.enum(baseModel.fields.test.name)
+    const expectedError = validation.errorMessage('enum', baseModel.fields.test)
     expect(getTestFieldError({test: ['red', 'yellow']})).toBe(expectedError)
   })
 
@@ -233,7 +233,7 @@ describe('validating against page models', () => {
   test('throws a noMatch error when input does not match', () => {
     deleteTestFieldProperties(['validValues'])
     setTestField({ type: 'nonEmptyString', matches: ['abc'], noMatchText: 'the reference we hold for you'})
-    const expectedError = validation.errorTemplates.noMatch(baseModel.fields.test.name, baseModel.fields.test.noMatchText)
+    const expectedError = validation.errorMessage('noMatch', baseModel.fields.test)
     expect(getTestFieldError({test: 'def'})).toBe(expectedError)
   })
 
@@ -244,7 +244,7 @@ describe('validating against page models', () => {
   test('throws a noMatch error when input is in exclusions', () => {
     deleteTestFieldProperties(['matches', 'noMatchText'])
     setTestField({ type: 'nonEmptyString', matchingExclusions: ['abc']})
-    const expectedError = validation.errorTemplates.noMatch(baseModel.fields.test.name, baseModel.fields.test.noMatchText)
+    const expectedError = validation.errorMessage('noMatch', baseModel.fields.test)
     expect(getTestFieldError({test: 'abc'})).toBe(expectedError)
   })
 
@@ -255,7 +255,7 @@ describe('validating against page models', () => {
   test('throws a missingFile error when file is missing', () => {
     deleteTestFieldProperties(['validValues'])
     setTestField({ type: 'file', name: 'test name' })
-    const expectedError = validation.errorTemplates.missingFile(baseModel.fields.test.name)
+    const expectedError = validation.errorMessage('missingFile', baseModel.fields.test)
     expect(getTestFieldError({})).toBe(expectedError)
   })
 
@@ -265,12 +265,12 @@ describe('validating against page models', () => {
 
   test('throws currency error when answer is not able to be converted to a currency amount', () => {
     setTestField({type: 'currency'})
-    const expectedError = validation.errorTemplates.currency(baseModel.fields.test.name)
+    const expectedError = validation.errorMessage('currency', baseModel.fields.test)
     expect(getTestFieldError({test: 'twelve'})).toBe(expectedError)
   })
 
   test('throws required error when currency answer is empty', () => {
-    const expectedError = validation.errorTemplates.required(baseModel.fields.test.name)
+    const expectedError = validation.errorMessage('required', baseModel.fields.test)
     expect(getTestFieldError({test: ''})).toBe(expectedError)
   })
 
@@ -281,7 +281,7 @@ describe('validating against page models', () => {
 
   test('throws currencyMin error when answer is less than minimum amount', () => {
     setTestField({currencyMin: 50})
-    const expectedError = validation.errorTemplates.currencyMin(baseModel.fields.test.name, 50)
+    const expectedError = validation.errorMessage('currencyMin', baseModel.fields.test)
     expect(getTestFieldError({test: '12'})).toBe(expectedError)
   })
 
@@ -293,18 +293,18 @@ describe('validating against page models', () => {
   test('throws betweenMinAndMaxNumbers error when answer is less than minimum amount ', () => {
     deleteTestFieldProperty('currencyMin')
     setTestField({type: 'number', numberMin: 50, numberMax: 100})
-    const expectedError = validation.errorTemplates.betweenMinAndMaxNumbers(baseModel.fields.test.name, 50, 100)
+    const expectedError = validation.errorMessage('betweenMinAndMaxNumbers', baseModel.fields.test)
     expect(getTestFieldError({test: 12})).toBe(expectedError)
   })
 
   test('throws betweenMinAndMaxNumbers error when answer is more than maximum amount ', () => {
-    const expectedError = validation.errorTemplates.betweenMinAndMaxNumbers(baseModel.fields.test.name, 50, 100)
+    const expectedError = validation.errorMessage('betweenMinAndMaxNumbers', baseModel.fields.test)
     expect(getTestFieldError({test: 120})).toBe(expectedError)
   })
 
   test('throws numberMin error when answer is less than minimum amount', () => {
     deleteTestFieldProperty('numberMax')
-    const expectedError = validation.errorTemplates.numberMin(baseModel.fields.test.name, 50)
+    const expectedError = validation.errorMessage('numberMin', baseModel.fields.test)
     expect(getTestFieldError({test: 12})).toBe(expectedError)
   })
 
@@ -316,7 +316,7 @@ describe('validating against page models', () => {
   test('throws currencyMax error when answer is more than maximum amount', () => {
     deleteTestFieldProperty('numberMin')
     setTestField({type: 'currency', currencyMax: 50})
-    const expectedError = validation.errorTemplates.currencyMax(baseModel.fields.test.name, 50)
+    const expectedError = validation.errorMessage('currencyMax', baseModel.fields.test)
     expect(getTestFieldError({test: '52'})).toBe(expectedError)
   })
 
@@ -328,7 +328,7 @@ describe('validating against page models', () => {
   test('throws numberMax error when answer is more than maximum amount', () => {
     deleteTestFieldProperty('currencyMax')
     setTestField({type: 'number', numberMax: 50})
-    const expectedError = validation.errorTemplates.numberMax(baseModel.fields.test.name, 50)
+    const expectedError = validation.errorMessage('numberMax', baseModel.fields.test)
     expect(getTestFieldError({test: 52})).toBe(expectedError)
   })
 
@@ -342,11 +342,12 @@ describe('validating against page models', () => {
       name: 'total',
       type: 'currency',
       currencyMaxField: 'otherAmount',
-      getMaxCurrencyFromField: data => data.otherAmount
+      getMaxCurrencyFromField: data => data.otherAmount,
+      evalNumberMaxValue: 100
     })
     deleteTestFieldProperty('numberMax')
     const otherAmount = 100
-    const expectedError = validation.errorTemplates.currencyMaxField(baseModel.fields.test.name, 'otherAmount', otherAmount)
+    const expectedError = validation.errorMessage('currencyMaxField', baseModel.fields.test)
     expect(getTestFieldError({test: 101, otherAmount: otherAmount})).toBe(expectedError)
   })
 
@@ -361,7 +362,7 @@ describe('validating against page models', () => {
       name: 'Date'
     })
     deleteTestFieldProperties(['currencyMaxField', 'getMaxCurrencyFromField'])
-    const expectedError = validation.errorTemplates.date(baseModel.fields.test.name)
+    const expectedError = validation.errorMessage('date', baseModel.fields.test)
     expect(getTestFieldError({test: '2000-99-99'})).toBe(expectedError)
   })
 
@@ -370,7 +371,7 @@ describe('validating against page models', () => {
       type: 'date',
       name: 'Date'
     })
-    const expectedError = validation.errorTemplates.required(baseModel.fields.test.name)
+    const expectedError = validation.errorMessage('required', baseModel.fields.test)
     expect(getTestFieldError({test: ''})).toBe(expectedError)
   })
 
@@ -382,7 +383,7 @@ describe('validating against page models', () => {
     setTestField({
       beforeToday: true
     })
-    const expectedError = validation.errorTemplates.beforeToday(baseModel.fields.test.name)
+    const expectedError = validation.errorMessage('beforeToday', baseModel.fields.test)
     const tomorrow = LocalDate.now().plusDays(1)
     expect(getTestFieldError({test: tomorrow.toString()})).toBe(expectedError)
   })
@@ -397,7 +398,7 @@ describe('validating against page models', () => {
     setTestField({
       afterFixedDate: fixedDate
     })
-    const expectedError = validation.errorTemplates.afterFixedDate(baseModel.fields.test.name, fixedDate)
+    const expectedError = validation.errorMessage('afterFixedDate', baseModel.fields.test)
     expect(getTestFieldError({test: '2009-10-04'})).toBe(expectedError)
   })
 
@@ -411,7 +412,7 @@ describe('validating against page models', () => {
     setTestField({
       beforeFixedDate: fixedDate
     })
-    const expectedError = validation.errorTemplates.beforeFixedDate(baseModel.fields.test.name, fixedDate)
+    const expectedError = validation.errorMessage('beforeFixedDate', baseModel.fields.test)
     expect(getTestFieldError({test: '2011-10-04'})).toBe(expectedError)
   })
 
@@ -420,16 +421,16 @@ describe('validating against page models', () => {
   })
 
   test('throws beforeDate error when date is not before the date in another field', () => {
-    const otherDate = '2020-02-02'
     deleteTestFieldProperty('beforeFixedDate')
     setTestField({
       beforeField: 'otherDate',
-      beforeDateField: data => data.otherDate
+      beforeDateField: data => data.otherDate,
+      evalBeforeDateValue: '2020-02-02'
     })
-    const expectedError = validation.errorTemplates.beforeDate(baseModel.fields.test.name, 'otherDate', otherDate)
+    const expectedError = validation.errorMessage('beforeDate', baseModel.fields.test)
     expect(getTestFieldError({
       test: '2020-03-01',
-      otherDate: otherDate
+      otherDate: '2020-02-02'
     })).toBe(expectedError)
   })
 
@@ -438,16 +439,16 @@ describe('validating against page models', () => {
   })
 
   test('throws afterDate error when date is not after the date in another field', () => {
-    const otherDate = '2020-02-02'
     deleteTestFieldProperties(['beforeDateField', 'evalBeforeDateValue', 'beforeField'])
     setTestField({
       afterField: 'otherDate',
-      afterDateField: data => data.otherDate
+      afterDateField: data => data.otherDate,
+      evalAfterDateValue: '2020-02-02'
     })
-    const expectedError = validation.errorTemplates.afterDate(baseModel.fields.test.name, 'otherDate', otherDate)
+    const expectedError = validation.errorMessage('afterDate', baseModel.fields.test)
     expect(getTestFieldError({
       test: '2020-01-01',
-      otherDate: otherDate
+      otherDate: '2020-02-02'
     })).toBe(expectedError)
   })
 
@@ -460,6 +461,43 @@ describe('validating against page models', () => {
       test: '2020-11-15',
       otherDate: '2020-10-04'
     })).toBeUndefined()
+  })
+
+})
+
+describe('using custom error messages', () => {
+  const pageModel = {
+    fields: {
+      test: {
+        type: 'number',
+        name: 'test field',
+        maxLength: 4,
+        numberMin: 10,
+        numberMax: 1000,
+        errors: {
+          tooLong: 'The test field length cannot be more than 4 numbers long',
+          betweenMinAndMaxNumbers: field => `The value you enter for test field must be a number between ${field.numberMin} and ${field.numberMax}`,
+          required: field => `You must enter a value for ${field.name}`
+        }
+      }
+    }
+  }
+
+  const getTestFieldError = data => validation.getPageErrors(data, pageModel).text.test
+
+  test('returns custom required error via method', () => {
+    const expectedError = validation.errorMessage('required', pageModel.fields.test)
+    expect(getTestFieldError({test: ''})).toBe(expectedError)
+  })
+
+  test('returns custom betweenMinAndMaxNumbers error via function', () => {
+    const expectedError = validation.errorMessage('betweenMinAndMaxNumbers', pageModel.fields.test)
+    expect(getTestFieldError({test: '8'})).toBe(expectedError)
+  })
+
+  test('returns custom maxLength error as string', () => {
+    const expectedError = validation.errorMessage('tooLong', pageModel.fields.test)
+    expect(getTestFieldError({test: '10000'})).toBe(expectedError)
   })
 
 })
