@@ -5,7 +5,7 @@
 Require this package in your node server apps, including govuk prototypes and use the methods to validate forms and fields on the server to 
 return error messages that are templated to GDS recommendations. Response formats are optimised for use in govuk prototype 
 Nunjucks error summary components, however there is no dependency on any govuk libraries so other apps can also use this package and 
-consume error responses as they see fit.
+consume error responses as they see fit or even overwrite the GDS error templating with custom error messages in the field model.
 
 ```
 npm install --save @nubz/gds-validation
@@ -92,14 +92,21 @@ interface FieldObject {
   beforeField?: String // description of the date being compared to e.g. 'Date of death'
   beforeToday?: Boolean
   patternText?: String // description of regex for error messages - defaults to `${fieldDescription} is not valid`
+  errors?: CustomErrors
 }
+
+interface CustomErrors {
+    [key: ErrorTemplateName]: String | Function<(field: FieldObject) => String>
+}
+
+type ErrorTemplateName = 'required' | 'betweenMinAndMax' | 'betweenMinAndMaxNumbers' | 'tooShort' | 'tooLong' | 'exactLength' | 'number' | 'currency' | 'numberMin' | 'currencyMin' | 'numberMax' | 'currencyMax' | 'currencyMaxField' | 'pattern' | 'enum' | 'missingFile' | 'date'| 'beforeDate' | 'afterDate' | 'beforeToday' | 'afterFixedDate' | 'beforeFixedDate' | 'noMatch';
+
 ```
 
 ### Responses
 The `isValidPage()` function will return `true` or `false`, this method is useful when iterating a group of pages 
 together. The `getPageErrors()` function will return an errors object for use in templates, even when there are no 
-errors within, so to assert there are no errors we could test the length of the summary array, if `0` then no errors are 
-within.
+errors within, so to assert there are no errors we could test the value of `hasErrors` which is a boolean.
 ```typescript
 interface Errors {
   summary: Array<Error>
