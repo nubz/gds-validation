@@ -93,6 +93,7 @@ interface FieldObject {
   beforeToday?: Boolean
   patternText?: String // description of regex for error messages - defaults to `${fieldDescription} is not valid`
   errors?: CustomErrors
+  transform?: (data: Payload) => any // is used to assign a new value to validate for the field object e.g. stripping out hyphens and spaces from sort-code value means we can return a new value with this method: data => data['sort-code'].replace(/-/g, '').replace(/\s+/g, '')
 }
 
 interface CustomErrors {

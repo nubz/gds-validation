@@ -57,32 +57,32 @@
     }
   }
 
-  const isValidField = (payLoad, fieldObj, fieldKey) => {
+  const isValidField = (payLoad, field, fieldKey) => {
 
-    if (typeof fieldObj.includeIf === 'function' && !fieldObj.includeIf(payLoad)) {
+    if (typeof field.includeIf === 'function' && !field.includeIf(payLoad)) {
       return true
     }
 
-    evalValuesFromData(payLoad, fieldObj)
+    evalValuesFromData(payLoad, field)
 
-    if (payLoad[fieldKey] && typeof fieldObj.transform === 'function') {
-      payLoad[fieldKey] = fieldObj.transform(payLoad)
+    if (payLoad[fieldKey] && typeof field.transform === 'function') {
+      payLoad[fieldKey] = field.transform(payLoad)
     }
 
-    if (payLoad[fieldKey] && fieldObj.type === 'currency') {
+    if (payLoad[fieldKey] && field.type === 'currency') {
       payLoad[fieldKey] = stripCommas(payLoad[fieldKey].toString().replace(/£/, ''))
     }
 
     if (payLoad[fieldKey]) {
-      return !validationError(fieldObj, payLoad[fieldKey], fieldKey)
+      return !validationError(field, payLoad[fieldKey], fieldKey)
     }
 
     return false
   }
 
-  const buildHref = (fieldKey, fieldObj) =>
-    fieldObj.type === 'enum' && fieldObj.validValues.length > 0 ?
-      fieldKey + '-' + slugify(fieldObj.validValues[0]) : fieldKey
+  const buildHref = (fieldKey, field) =>
+    field.type === 'enum' && field.validValues.length > 0 ?
+      fieldKey + '-' + slugify(field.validValues[0]) : fieldKey
 
   const isValidDate = date => {
     try {
