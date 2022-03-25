@@ -6,15 +6,16 @@
   const wholeDateErrors = ['date', 'required', 'beforeDate', 'afterDate', 'beforeFixedDate', 'afterFixedDate', 'beforeToday']
   const dayErrors = ['dayRequired', 'dayAndYearRequired', 'dayAndMonthRequired']
   const monthErrors = ['monthRequired', 'monthAndYearRequired', 'dayAndMonthRequired']
-  const yearErrors = ['yearRequired', 'yearLength', 'monthAndYearRequired', 'dayAndYearRequired']
-  const dateErrorLink = errorKey => {
-  if (wholeDateErrors.includes(errorKey) || dayErrors.includes(errorKey)) { return 'day' }
-    else if (monthErrors.includes(errorKey)) { return 'month' }
-    else if (yearErrors.includes(errorKey)) { return 'year' }
-  }
+  const yearErrors = ['yearRequired', 'monthAndYearRequired', 'dayAndYearRequired']
   const addCommas = val => val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
   const stripCommas = val => val.toString().trim().replace(/,/g, '')
   const zeroPad = val => !isNaN(+val) ? (parseInt(val) < 10 ? '0' + val : val) : val
+  const dateErrorLink = errorKey => {
+    if (wholeDateErrors.includes(errorKey) || dayErrors.includes(errorKey)) { return 'day' }
+    else if (monthErrors.includes(errorKey)) { return 'month' }
+    else if (yearErrors.includes(errorKey)) { return 'year' }
+    else throw `errorKey ${errorKey} found that does not have a link`
+  }
   const makeYearString = (data, key) => data[`${key}-year`] && data[`${key}-year`].length > 0 ? data[`${key}-year`] : null
   const makeMonthString = (data, key) => data[`${key}-month`] && data[`${key}-month`].length > 0 ? zeroPad(data[`${key}-month`]) : null
   const makeDayString = (data, key) => data[`${key}-day`] && data[`${key}-day`].length > 0 ? zeroPad(data[`${key}-day`]) : null
@@ -22,7 +23,7 @@
     const year = makeYearString(data, key)
     const month = makeMonthString(data, key)
     const day = makeDayString(data, key)
-    const hasMissingDateInputs = [day, month, year].some(input => input === null)
+    const hasMissingDateInputs = [day, month, year].some(input => !input)
     return hasMissingDateInputs ? [day, month, year] : `${year}-${month}-${day}`
   }
   const currencyDisplay = val => {
@@ -281,6 +282,7 @@
     capitalise,
     slugify,
     zeroPad,
+    dateErrorLink,
     errorTemplates,
     getPageErrors,
     isValidPageWrapper,

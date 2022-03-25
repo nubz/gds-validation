@@ -47,6 +47,11 @@ describe('utilities used by error generation and validation', () => {
     expect(validation.zeroPad('999')).toBe('999')
   })
 
+  test('does not zero pad string representations that are not numbers', () => {
+    expect(validation.zeroPad('twelve')).toBe('twelve')
+    expect(validation.zeroPad('any old string')).toBe('any old string')
+  })
+
 })
 
 describe('validating against page models', () => {
@@ -373,11 +378,11 @@ describe('validating against page models', () => {
     })
     deleteTestFieldProperties(['currencyMaxField', 'getMaxCurrencyFromField'])
     const expectedError = validation.errorMessage('date', baseModel.fields.test)
-    expect(getTestFieldError({test: '2000-99-99'})).toBe(expectedError)
+    expect(getTestFieldError({'test-day': '99', 'test-month': '99', 'test-year': '2000'})).toBe(expectedError)
   })
 
   test('composes date from date parts and validates', () => {
-    expect(getTestFieldError({'test-day': '29', 'test-month': '2', 'test-year': '2000'})).toBeUndefined()
+    expect(getTestFieldError({'test-day': '26', 'test-month': '2', 'test-year': '2000'})).toBeUndefined()
   })
 
   test('throws date error when no date is answered', () => {
@@ -386,7 +391,7 @@ describe('validating against page models', () => {
       name: 'Date'
     })
     const expectedError = validation.errorMessage('required', baseModel.fields.test)
-    expect(getTestFieldError({})).toBe(expectedError)
+    expect(getTestFieldError({'test-day': '', 'test-month': '', 'test-year': ''})).toBe(expectedError)
   })
 
   test('throws dayRequired error when day is missing from date answers', () => {
@@ -402,6 +407,17 @@ describe('validating against page models', () => {
   test('throws yearRequired error when year is missing from date answers', () => {
     const expectedError = validation.errorMessage('yearRequired', baseModel.fields.test)
     expect(getTestFieldError({'test-day': '23', 'test-month': '12', 'test-year': ''})).toBe(expectedError)
+  })
+
+  test('expect error summary link to link to year field when only year missing', () => {
+    const errors = validation.getPageErrors({'test-day': '23', 'test-month': '12', 'test-year': ''}, baseModel)
+    expect(errors.summary[0].href).toBe('#test-year')
+  })
+
+  test('expect dateErrorLink to throw error when an unknown error key is passed', () => {
+    expect(() => {
+      validation.dateErrorLink('unknown')
+    }).toThrow()
   })
 
   test('throws dayAndYearRequired error when both day and year are missing from date answers', () => {
@@ -446,11 +462,11 @@ describe('validating against page models', () => {
       afterFixedDate: fixedDate
     })
     const expectedError = validation.errorMessage('afterFixedDate', baseModel.fields.test)
-    expect(getTestFieldError({test: '2009-10-04'})).toBe(expectedError)
+    expect(getTestFieldError({'test-day': '29', 'test-month': '3', 'test-year': '2000'})).toBe(expectedError)
   })
 
   test('does not throw afterFixedDate error when date is after fixed date', () => {
-    expect(getTestFieldError({test: '2010-11-17'})).toBeUndefined()
+    expect(getTestFieldError({'test-day': '29', 'test-month': '3', 'test-year': '2011'})).toBeUndefined()
   })
 
   test('throws beforeFixedDate error when date is not before supplied fixed date', () => {
@@ -460,11 +476,11 @@ describe('validating against page models', () => {
       beforeFixedDate: fixedDate
     })
     const expectedError = validation.errorMessage('beforeFixedDate', baseModel.fields.test)
-    expect(getTestFieldError({test: '2011-10-04'})).toBe(expectedError)
+    expect(getTestFieldError({'test-day': '29', 'test-month': '3', 'test-year': '2011'})).toBe(expectedError)
   })
 
   test('does not throw beforeFixedDate error when date is before fixed date', () => {
-    expect(getTestFieldError({test: '2010-11-15'})).toBeUndefined()
+    expect(getTestFieldError({'test-day': '29', 'test-month': '3', 'test-year': '2010'})).toBeUndefined()
   })
 
   test('throws beforeDate error when date is not before the date in another field', () => {
@@ -476,7 +492,9 @@ describe('validating against page models', () => {
     })
     const expectedError = validation.errorMessage('beforeDate', baseModel.fields.test)
     expect(getTestFieldError({
-      test: '2020-03-01',
+      'test-day': '29',
+      'test-month': '3',
+      'test-year': '2021',
       otherDate: '2020-02-02'
     })).toBe(expectedError)
   })
