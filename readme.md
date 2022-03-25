@@ -92,7 +92,7 @@ interface FieldObject {
   beforeField?: String // description of the date being compared to e.g. 'Date of death'
   beforeToday?: Boolean
   patternText?: String // description of regex for error messages - defaults to `${fieldDescription} is not valid`
-  errors?: CustomErrors
+  errors?: CustomErrors // instead of using templated errors it's possible to include an error object with keys as the error case name (see ErrorTemplateName values) to overwrite the template with a custom string (or function that interpolates data)
   transform?: (data: Payload) => any // is used to assign a new value to validate for the field object e.g. stripping out hyphens and spaces from sort-code value means we can return a new value with this method: data => data['sort-code'].replace(/-/g, '').replace(/\s+/g, '')
 }
 
@@ -131,7 +131,8 @@ interface ErrorMessages {
 ## Example usage of the errors object
 In an Express route handler for a post you could pass the posted data alongside a page model to the `getPageErrors` method
 and this would return an error object that either contains errors or not. In this example we are writing the page model 
-directly into the call as second parameter which can often be a quick way to get error handling on a page.
+directly into the call as second parameter which can often be a quick way to get error handling on a page, we could, 
+alternatively, create a models.js file and export all of our models from there into our routes file.
 
 ```ecmascript 6
 const validation = require('@nubz/gds-validation')
@@ -200,6 +201,45 @@ Then we can use these macros in a Gov Prototype kit template with our errors obj
           <div class="govuk-radios">
             <div class="govuk-radios__item"> ...
 ```
+
+## Example custom errors
+Instead of using the templates to produce errors it's possible to use custom ones instead
+
+```ecmascript 6
+const validation = require('@nubz/gds-validation')
+
+router.post('/test-page', (req, res) => {
+  const errors = validation.getPageErrors(req.body, {
+    fields: {
+      'full-name': {
+        type: 'nonEmptyString',
+        name: 'Your full name',
+        errors: {
+          required: 'You must give us your full name'
+        }
+      },
+      'date-of-birth': {
+        type: 'date',
+        name: 'Your date of birth',
+        beforeToday: true,
+        errors: {
+          date: 'Only valid dates can be used as date of birth',
+          beforeToday: 'You must be born before today!'
+        }
+      }
+    }
+  })
+  
+  if (errors.hasErrors) {
+    res.render('/test-page', {
+      errors: errors
+    })
+  } else {
+    res.redirect('next-page')
+  }
+})
+```
+
 ## Schemas and task lists
 
 With this library it is possible to build up schemas of models and layer validation to establish the validity of groups 
