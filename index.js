@@ -3,8 +3,28 @@
   const LocalDate = require('@js-joda/core').LocalDate
   const DateTimeFormatter = require('@js-joda/core').DateTimeFormatter
   const govDateFormat = DateTimeFormatter.ofPattern('d MMMM uuuu').withLocale(Locale.ENGLISH)
+  const wholeDateErrors = ['date', 'required', 'beforeDate', 'afterDate', 'beforeFixedDate', 'afterFixedDate', 'beforeToday']
+  const dayErrors = ['dayRequired', 'dayAndYearRequired', 'dayAndMonthRequired']
+  const monthErrors = ['monthRequired', 'monthAndYearRequired', 'dayAndMonthRequired']
+  const yearErrors = ['yearRequired', 'yearLength', 'monthAndYearRequired', 'dayAndYearRequired']
+  const dateErrorLink = errorKey => {
+  if (wholeDateErrors.includes(errorKey) || dayErrors.includes(errorKey)) { return 'day' }
+    else if (monthErrors.includes(errorKey)) { return 'month' }
+    else if (yearErrors.includes(errorKey)) { return 'year' }
+  }
   const addCommas = val => val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
   const stripCommas = val => val.toString().trim().replace(/,/g, '')
+  const zeroPad = val => !isNaN(+val) ? (parseInt(val) < 10 ? '0' + val : val) : val
+  const makeYearString = (data, key) => data[`${key}-year`] && data[`${key}-year`].length > 0 ? data[`${key}-year`] : null
+  const makeMonthString = (data, key) => data[`${key}-month`] && data[`${key}-month`].length > 0 ? zeroPad(data[`${key}-month`]) : null
+  const makeDayString = (data, key) => data[`${key}-day`] && data[`${key}-day`].length > 0 ? zeroPad(data[`${key}-day`]) : null
+  const makeDateString = (data, key) => {
+    const year = makeYearString(data, key)
+    const month = makeMonthString(data, key)
+    const day = makeDayString(data, key)
+    const hasMissingDateInputs = [day, month, year].some(input => input === null)
+    return hasMissingDateInputs ? [day, month, year] : `${year}-${month}-${day}`
+  }
   const currencyDisplay = val => {
     if (!val) return ''
     const withoutCommas = stripCommas(val)
@@ -34,12 +54,38 @@
     enum: field => `Select ${field.name}`,
     missingFile: field => `Upload ${field.name}`,
     date: field => `${capitalise(field.name)} must be a real date`,
+    dayRequired: field => `${capitalise(field.name)} must include a day}`,
+    monthRequired: field => `${capitalise(field.name)} must include a month}`,
+    yearRequired: field => `${capitalise(field.name)} must include a year}`,
+    dayAndYearRequired: field => `${capitalise(field.name)} must include a day and a year}`,
+    dayAndMonthRequired: field => `${capitalise(field.name)} must include a day and a month}`,
+    monthAndYearRequired: field => `${capitalise(field.name)} must include a month and a year}`,
     beforeDate: field => `${capitalise(field.name)} must be before ${field.beforeField}, ${LocalDate.parse(field.evalBeforeDateValue).format(govDateFormat)}`,
     afterDate: field => `${capitalise(field.name)} must be after ${field.afterField}, ${LocalDate.parse(field.evalAfterDateValue).format(govDateFormat)}`,
     beforeToday: field => `${capitalise(field.name)} must be in the past`,
     afterFixedDate: field => `${capitalise(field.name)} must be after ${LocalDate.parse(field.afterFixedDate).format(govDateFormat)}`,
     beforeFixedDate: field => `${capitalise(field.name)} must be before ${LocalDate.parse(field.beforeFixedDate).format(govDateFormat)}`,
     noMatch: field => `${capitalise(field.name)} does not match ${field.noMatchText || `our records`}`
+  }
+
+  const getDateErrorKey = value => {
+    if (!value[0] && !value[1] && !value[2]) {
+      return 'required'
+    } else if (value[0] && !value[1] && !value[2]) {
+      return 'monthAndYearRequired'
+    } else if (!value[0] && value[1] && !value[2]) {
+      return 'dayAndYearRequired'
+    } else if (!value[0] && !value[1] && value[2]) {
+      return 'dayAndMonthRequired'
+    } else if (value[0] && value[1] && !value[2]) {
+      return 'yearRequired'
+    } else if (value[0] && !value[1] && value[2]) {
+      return 'monthRequired'
+    } else if (!value[0] && value[1] && value[2]) {
+      return 'dayRequired'
+    } else {
+      return 'date'
+    }
   }
 
   const evalValuesFromData = (data, field) => {
@@ -73,6 +119,10 @@
       payLoad[fieldKey] = stripCommas(payLoad[fieldKey].toString().replace(/£/, ''))
     }
 
+    if (field.type === 'date' && !payLoad[fieldKey]) {
+      payLoad[fieldKey] = makeDateString(payLoad, fieldKey)
+    }
+
     if (payLoad[fieldKey]) {
       return !validationError(field, payLoad[fieldKey], fieldKey)
     }
@@ -80,9 +130,13 @@
     return false
   }
 
-  const buildHref = (fieldKey, field) =>
-    field.type === 'enum' && field.validValues.length > 0 ?
-      fieldKey + '-' + slugify(field.validValues[0]) : fieldKey
+  const buildHref = (fieldKey, field, value) => {
+    if (field.type === 'enum' && field.validValues.length > 0) {
+      return fieldKey + '-' + slugify(field.validValues[0])
+    } else if (field.type === 'date') {
+      return fieldKey + '-' + dateErrorLink(getDateErrorKey(value))
+    }
+  }
 
   const isValidDate = date => {
     try {
@@ -100,8 +154,8 @@
     let errorText
     switch (field.type) {
       case 'date':
-        if (!value) {
-          errorText = errorMessage('required', field)
+        if (Array.isArray(value)) {
+          errorText = errorMessage(getDateErrorKey(value), field)
         } else if (!isValidDate(value)) {
           errorText = errorMessage('date', field)
         }
@@ -191,7 +245,7 @@
 
     return errorText ? {
       id: fieldKey,
-      href: '#' + buildHref(fieldKey, field),
+      href: '#' + buildHref(fieldKey, field, value),
       text: errorText
     } : null
   }
@@ -226,6 +280,7 @@
     currencyDisplay,
     capitalise,
     slugify,
+    zeroPad,
     errorTemplates,
     getPageErrors,
     isValidPageWrapper,

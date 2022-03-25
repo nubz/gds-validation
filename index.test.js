@@ -37,6 +37,16 @@ describe('utilities used by error generation and validation', () => {
     expect(validation.slugify('test-----multiple-hyphens in a string!')).toBe('test-multiple-hyphens-in-a-string')
   })
 
+  test('zero pads string representations of numbers below 10', () => {
+    expect(validation.zeroPad('9')).toBe('09')
+    expect(validation.zeroPad('3')).toBe('03')
+  })
+
+  test('does not zero pad string representations of numbers above 10', () => {
+    expect(validation.zeroPad('12')).toBe('12')
+    expect(validation.zeroPad('999')).toBe('999')
+  })
+
 })
 
 describe('validating against page models', () => {
@@ -366,17 +376,47 @@ describe('validating against page models', () => {
     expect(getTestFieldError({test: '2000-99-99'})).toBe(expectedError)
   })
 
+  test('composes date from date parts and validates', () => {
+    expect(getTestFieldError({'test-day': '29', 'test-month': '2', 'test-year': '2000'})).toBeUndefined()
+  })
+
   test('throws date error when no date is answered', () => {
     setTestField({
       type: 'date',
       name: 'Date'
     })
     const expectedError = validation.errorMessage('required', baseModel.fields.test)
-    expect(getTestFieldError({test: ''})).toBe(expectedError)
+    expect(getTestFieldError({})).toBe(expectedError)
   })
 
-  test('does not throw date error when valid date is answered', () => {
-    expect(getTestFieldError({test: '2021-10-04'})).toBeUndefined()
+  test('throws dayRequired error when day is missing from date answers', () => {
+    const expectedError = validation.errorMessage('dayRequired', baseModel.fields.test)
+    expect(getTestFieldError({'test-day': '', 'test-month': '2', 'test-year': '2000'})).toBe(expectedError)
+  })
+
+  test('throws monthRequired error when month is missing from date answers', () => {
+    const expectedError = validation.errorMessage('monthRequired', baseModel.fields.test)
+    expect(getTestFieldError({'test-day': '23', 'test-month': '', 'test-year': '2000'})).toBe(expectedError)
+  })
+
+  test('throws yearRequired error when year is missing from date answers', () => {
+    const expectedError = validation.errorMessage('yearRequired', baseModel.fields.test)
+    expect(getTestFieldError({'test-day': '23', 'test-month': '12', 'test-year': ''})).toBe(expectedError)
+  })
+
+  test('throws dayAndYearRequired error when both day and year are missing from date answers', () => {
+    const expectedError = validation.errorMessage('dayAndYearRequired', baseModel.fields.test)
+    expect(getTestFieldError({'test-day': '', 'test-month': '12', 'test-year': ''})).toBe(expectedError)
+  })
+
+  test('throws monthAndYearRequired error when both month and year are missing from date answers', () => {
+    const expectedError = validation.errorMessage('monthAndYearRequired', baseModel.fields.test)
+    expect(getTestFieldError({'test-day': '23', 'test-month': '', 'test-year': ''})).toBe(expectedError)
+  })
+
+  test('throws dayAndMonthRequired error when both day and month are missing from date answers', () => {
+    const expectedError = validation.errorMessage('dayAndMonthRequired', baseModel.fields.test)
+    expect(getTestFieldError({'test-day': '', 'test-month': '', 'test-year': '2020'})).toBe(expectedError)
   })
 
   test('throws beforeToday error when date is not before today', () => {
@@ -385,11 +425,18 @@ describe('validating against page models', () => {
     })
     const expectedError = validation.errorMessage('beforeToday', baseModel.fields.test)
     const tomorrow = LocalDate.now().plusDays(1)
-    expect(getTestFieldError({test: tomorrow.toString()})).toBe(expectedError)
+    expect(getTestFieldError({
+      'test-day': tomorrow.dayOfMonth().toString(),
+      'test-month': tomorrow.monthValue().toString(),
+      'test-year': tomorrow.year().toString()})).toBe(expectedError)
   })
 
   test('does not throw beforeToday error when date is before today', () => {
-    expect(getTestFieldError({test: '2000-01-01'})).toBeUndefined()
+    const yesterday = LocalDate.now().minusDays(1)
+    expect(getTestFieldError({
+      'test-day': yesterday.dayOfMonth().toString(),
+      'test-month': yesterday.monthValue().toString(),
+      'test-year': yesterday.year().toString()})).toBeUndefined()
   })
 
   test('throws afterFixedDate error when date is not after supplied fixed date', () => {
