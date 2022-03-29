@@ -137,6 +137,8 @@
     } else if (field.type === 'date') {
       return fieldKey + '-' + dateErrorLink(getDateErrorKey(value))
     }
+
+    return fieldKey
   }
 
   const isValidDate = date => {
