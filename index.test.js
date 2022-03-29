@@ -305,8 +305,31 @@ describe('validating against page models', () => {
     expect(getTestFieldError({test: '1,234'})).toBeUndefined()
   })
 
-  test('throws betweenMinAndMaxNumbers error when answer is less than minimum amount ', () => {
+  test('throws currencyMax error when answer is more than maximum amount', () => {
     deleteTestFieldProperty('currencyMin')
+    setTestField({type: 'currency', currencyMax: 50})
+    const expectedError = validation.errorMessage('currencyMax', baseModel.fields.test)
+    expect(getTestFieldError({test: '52'})).toBe(expectedError)
+  })
+
+  test('does not throw currencyMax error when answer is on or below the maximum amount', () => {
+    expect(getTestFieldError({test: '12'})).toBeUndefined()
+    expect(getTestFieldError({test: '50'})).toBeUndefined()
+  })
+
+  test('throws betweenCurrencyMinAndMax error when answer is more than maximum amount or less than minimum amount', () => {
+    setTestField({currencyMin: 10})
+    const expectedError = validation.errorMessage('betweenCurrencyMinAndMax', baseModel.fields.test)
+    expect(getTestFieldError({test: '52'})).toBe(expectedError)
+  })
+
+  test('does not throw currencyMax error when answer is on or below the maximum amount', () => {
+    expect(getTestFieldError({test: '12'})).toBeUndefined()
+    expect(getTestFieldError({test: '50'})).toBeUndefined()
+  })
+
+  test('throws betweenMinAndMaxNumbers error when answer is less than minimum amount ', () => {
+    deleteTestFieldProperties(['currencyMin', 'currencyMax'])
     setTestField({type: 'number', numberMin: 50, numberMax: 100})
     const expectedError = validation.errorMessage('betweenMinAndMaxNumbers', baseModel.fields.test)
     expect(getTestFieldError({test: 12})).toBe(expectedError)
@@ -328,20 +351,8 @@ describe('validating against page models', () => {
     expect(getTestFieldError({test: 1234})).toBeUndefined()
   })
 
-  test('throws currencyMax error when answer is more than maximum amount', () => {
-    deleteTestFieldProperty('numberMin')
-    setTestField({type: 'currency', currencyMax: 50})
-    const expectedError = validation.errorMessage('currencyMax', baseModel.fields.test)
-    expect(getTestFieldError({test: '52'})).toBe(expectedError)
-  })
-
-  test('does not throw currencyMax error when answer is on or below the maximum amount', () => {
-    expect(getTestFieldError({test: '12'})).toBeUndefined()
-    expect(getTestFieldError({test: '50'})).toBeUndefined()
-  })
-
   test('throws numberMax error when answer is more than maximum amount', () => {
-    deleteTestFieldProperty('currencyMax')
+    deleteTestFieldProperty('numberMin')
     setTestField({type: 'number', numberMax: 50})
     const expectedError = validation.errorMessage('numberMax', baseModel.fields.test)
     expect(getTestFieldError({test: 52})).toBe(expectedError)

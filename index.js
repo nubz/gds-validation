@@ -41,14 +41,15 @@
     required: field => `Enter ${field.name}`,
     betweenMinAndMax: field => `${capitalise(field.name)} must be between ${field.minLength} and ${field.maxLength} ${inputType(field)}`,
     betweenMinAndMaxNumbers: field => `${capitalise(field.name)} must be between ${field.numberMin} and ${field.numberMax}`,
+    betweenCurrencyMinAndMax: field => `${capitalise(field.name)} must be between ${currencyDisplay(field.currencyMin)} and ${currencyDisplay(field.currencyMax)}`,
     tooShort: field => `${capitalise(field.name)} must must be ${field.minLength} ${inputType(field)} or more`,
     tooLong: field => `${capitalise(field.name)} must be ${field.maxLength} ${inputType(field)} or fewer`,
     exactLength: field => `${capitalise(field.name)} must be ${field.exactLength} ${inputType(field)}`,
     number: field => `${capitalise(field.name)} must be a number`,
     currency: field => `${capitalise(field.name)} must be an amount of money`,
     numberMin: field => `${capitalise(field.name)} must be ${field.numberMin} or more`,
-    currencyMin: field => `${capitalise(field.name)} must be ${currencyDisplay(field.currencyMin)} or more`,
     numberMax: field => `${capitalise(field.name)} must be ${field.numberMax} or less`,
+    currencyMin: field => `${capitalise(field.name)} must be ${currencyDisplay(field.currencyMin)} or more`,
     currencyMax: field => `${capitalise(field.name)} must be ${currencyDisplay(field.currencyMax)} or less`,
     currencyMaxField: field => `${capitalise(field.name)} must not be more than the value of ${field.currencyMaxField} which is ${currencyDisplay(field.evalNumberMaxValue)}`,
     pattern: field => `${field.patternText || field.name + ` is not valid`}`,
@@ -210,12 +211,17 @@
       } else if (field.hasOwnProperty('minLength') && field.hasOwnProperty('maxLength') &&
         (value.length < field.minLength || value.length > field.maxLength)) {
         errorText = errorMessage('betweenMinAndMax', field)
+      } else if (field.hasOwnProperty('currencyMin') && field.hasOwnProperty('currencyMax') &&
+          (parseFloat(value) < field.currencyMin || parseFloat(value) > field.currencyMax)) {
+        errorText = errorMessage('betweenCurrencyMinAndMax', field)
       } else if (field.hasOwnProperty('maxLength') && value.length > field.maxLength) {
         errorText = errorMessage('tooLong', field)
       } else if (field.hasOwnProperty('minLength') && value.length < field.minLength) {
         errorText = errorMessage('tooShort', field)
       } else if (field.hasOwnProperty('currencyMin') && parseFloat(value) < field.currencyMin) {
         errorText = errorMessage('currencyMin', field)
+      } else if (field.hasOwnProperty('currencyMax') && parseFloat(value) > field.currencyMax) {
+        errorText = errorMessage('currencyMax', field)
       } else if (field.hasOwnProperty('numberMin') && field.hasOwnProperty('numberMax') &&
           (value < field.numberMin || value > field.numberMax)) {
         errorText = errorMessage('betweenMinAndMaxNumbers', field)
@@ -223,8 +229,6 @@
         errorText = errorMessage('numberMin', field)
       } else if (field.hasOwnProperty('evalNumberMaxValue') && value > field.evalNumberMaxValue) {
         errorText = errorMessage('currencyMaxField', field)
-      } else if (field.hasOwnProperty('currencyMax') && parseFloat(value) > field.currencyMax) {
-        errorText = errorMessage('currencyMax', field)
       } else if (field.hasOwnProperty('numberMax') && value > field.numberMax) {
         errorText = errorMessage('numberMax', field)
       } else if (field.hasOwnProperty('regex') && !field.regex.test(value)) {
