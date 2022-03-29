@@ -93,7 +93,7 @@
   const evalValuesFromData = (data, field) => {
 
     if (typeof field.getMaxCurrencyFromField === 'function') {
-      field.evalNumberMaxValue = field.getMaxCurrencyFromField(data)
+      field.evalNumberMaxValue = parseFloat(field.getMaxCurrencyFromField(data))
     }
 
     if (typeof field.afterDateField === 'function') {
