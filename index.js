@@ -51,7 +51,7 @@
     numberMax: field => `${capitalise(field.name)} must be ${field.numberMax} or less`,
     currencyMin: field => `${capitalise(field.name)} must be ${currencyDisplay(field.currencyMin)} or more`,
     currencyMax: field => `${capitalise(field.name)} must be ${currencyDisplay(field.currencyMax)} or less`,
-    currencyMaxField: field => `${capitalise(field.name)} must not be more than the value of ${field.currencyMaxField} which is ${currencyDisplay(field.evalNumberMaxValue)}`,
+    currencyMaxField: field => `${capitalise(field.name)} must not be more than ${field.currencyMaxField ? `the value of ${field.currencyMaxField} which is ` : ``}${currencyDisplay(field.evalCurrencyMaxValue)}`,
     pattern: field => `${field.patternText || field.name + ` is not valid`}`,
     enum: field => `Select ${field.name}`,
     missingFile: field => `Upload ${field.name}`,
@@ -90,10 +90,14 @@
     }
   }
 
-  const evalValuesFromData = (data, field) => {
+  const evaluatedValues = (data, field) => {
+
+    if (field.hasOwnProperty('getMaxCurrencyFromField') && data.hasOwnProperty(field.getMaxCurrencyFromField)) {
+      field.evalCurrencyMaxValue = parseFloat(data[field.getMaxCurrencyFromField])
+    }
 
     if (typeof field.getMaxCurrencyFromField === 'function') {
-      field.evalNumberMaxValue = parseFloat(field.getMaxCurrencyFromField(data))
+      field.evalCurrencyMaxValue = field.getMaxCurrencyFromField(data)
     }
 
     if (typeof field.afterDateField === 'function') {
@@ -111,7 +115,7 @@
       return true
     }
 
-    evalValuesFromData(payLoad, field)
+    evaluatedValues(payLoad, field)
 
     if (payLoad[fieldKey] && typeof field.transform === 'function') {
       payLoad[fieldKey] = field.transform(payLoad)
@@ -227,7 +231,7 @@
         errorText = errorMessage('betweenMinAndMaxNumbers', field)
       } else if (field.hasOwnProperty('numberMin') && value < field.numberMin) {
         errorText = errorMessage('numberMin', field)
-      } else if (field.hasOwnProperty('evalNumberMaxValue') && value > field.evalNumberMaxValue) {
+      } else if (field.hasOwnProperty('evalCurrencyMaxValue') && value > field.evalCurrencyMaxValue) {
         errorText = errorMessage('currencyMaxField', field)
       } else if (field.hasOwnProperty('numberMax') && value > field.numberMax) {
         errorText = errorMessage('numberMax', field)

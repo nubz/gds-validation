@@ -363,21 +363,38 @@ describe('validating against page models', () => {
     expect(getTestFieldError({test: '50'})).toBeUndefined()
   })
 
-  test('throws currencyMaxField error when answer is more than the amount from another field', () => {
+  test('throws currencyMaxField error when answer is more than the amount from another named field', () => {
+    deleteTestFieldProperty('numberMax')
     setTestField({
       name: 'total',
       type: 'currency',
-      currencyMaxField: 'otherAmount',
-      getMaxCurrencyFromField: data => data.otherAmount
+      currencyMaxField: 'the other amount',
+      getMaxCurrencyFromField: 'otherAmount'
     })
-    deleteTestFieldProperty('numberMax')
-    const expectedError = validation.errorMessage('currencyMaxField', { ...baseModel.fields.test, evalNumberMaxValue: 100 })
+    const expectedError = validation.errorMessage('currencyMaxField', { ...baseModel.fields.test, evalCurrencyMaxValue: 100 })
+    expect(getTestFieldError({test: '101', otherAmount: '100'})).toBe(expectedError)
+  })
+
+  test('throws currencyMaxField error without other field description when it is not supplied', () => {
+    deleteTestFieldProperty('currencyMaxField')
+    const expectedError = validation.errorMessage('currencyMaxField', { ...baseModel.fields.test, evalCurrencyMaxValue: 100 })
+    expect(getTestFieldError({test: '101', otherAmount: '100'})).toBe(expectedError)
+  })
+
+  test('throws currencyMaxField error when answer is more than the function called on another field', () => {
+    setTestField({
+      name: 'total',
+      type: 'currency',
+      currencyMaxField: 'half of the other amount',
+      getMaxCurrencyFromField: data => parseFloat(data.otherAmount) / 2
+    })
+    const expectedError = validation.errorMessage('currencyMaxField', { ...baseModel.fields.test, evalCurrencyMaxValue: 50 })
     expect(getTestFieldError({test: '101', otherAmount: '100'})).toBe(expectedError)
   })
 
   test('does not throw currencyMaxField error when answer not more than the amount from another field', () => {
-    expect(getTestFieldError({test: '99', otherAmount: '100'})).toBeUndefined()
-    expect(getTestFieldError({test: '100', otherAmount: '100'})).toBeUndefined()
+    expect(getTestFieldError({test: '99', otherAmount: '200'})).toBeUndefined()
+    expect(getTestFieldError({test: '100', otherAmount: '200'})).toBeUndefined()
   })
 
   test('throws date error when an invalid date is answered', () => {

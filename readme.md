@@ -73,7 +73,7 @@ interface FieldObject {
   matches?: Array<String> // value of input (can be any string type) must be in this list
   matchingExclusions?: Array<String> // value of input (can be any string type) must not be in this list
   noMatchText?: String // for use in error message to describe what the input is matched against - defaults to `our records` if missing
-  includeIf?: (data: Payload) => Boolean
+  includeIf?: (data: Payload) => Boolean // field will not be validate if returns false e.g. data => data.otherField === 'Yes'
   regex?: RegExp
   exactLength?: Number
   minLength?: Number
@@ -83,7 +83,8 @@ interface FieldObject {
   numberMax?: Number
   currencyMin?: Number
   currencyMax?: Number
-  getMaxCurrencyFromField?: (data: Payload) => Number
+  currencyMaxField?: String // a description of the max (optional) that will be used in error message e.g. 'half the amount of the other field'
+  getMaxCurrencyFromField?: String | Function<(data: Payload) => Number> // String should be the key of another field and function can be anything e.g. data => parseFloat(data.otherField) / 2 to say cannot be more than half the value of 'otherField'
   afterFixedDate?: Date // iso format string e.g. 2021-04-01
   beforeFixedDate?: Date
   afterDateField?: (data: Payload) => Date // define function to grab value of field e.g. data => data.afterField
