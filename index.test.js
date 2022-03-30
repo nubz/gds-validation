@@ -42,6 +42,10 @@ describe('utilities used by error generation and validation', () => {
     expect(validation.zeroPad('3')).toBe('03')
   })
 
+  test('zero pad does not pad when 0 already present on numbers below 10', () => {
+    expect(validation.zeroPad('01')).toBe('01')
+  })
+
   test('does not zero pad string representations of numbers above 10', () => {
     expect(validation.zeroPad('12')).toBe('12')
     expect(validation.zeroPad('999')).toBe('999')

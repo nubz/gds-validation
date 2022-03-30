@@ -9,7 +9,7 @@
   const yearErrors = ['yearRequired', 'monthAndYearRequired', 'dayAndYearRequired']
   const addCommas = val => val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
   const stripCommas = val => val.toString().trim().replace(/,/g, '')
-  const zeroPad = val => !isNaN(+val) ? (parseInt(val) < 10 ? '0' + val : val) : val
+  const zeroPad = val => !isNaN(+val) ? (val.toString().length === 1 ? '0' + val : val) : val
   const dateErrorLink = errorKey => {
     if (wholeDateErrors.includes(errorKey) || dayErrors.includes(errorKey)) { return 'day' }
     else if (monthErrors.includes(errorKey)) { return 'month' }
