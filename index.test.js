@@ -58,389 +58,775 @@ describe('utilities used by error generation and validation', () => {
 
 })
 
-describe('validating against page models', () => {
-
-  const baseModel = {
-    fields: {
-      test: {
-        type: 'optionalString',
-        name: 'test name'
-      }
-    }
+const getTestFieldError = (data, page) => validation.getPageErrors(data, page).text.test
+const setTestPage = field => ({
+  fields: {
+    test: field
   }
+})
 
-  const deleteTestFieldProperty = prop => delete baseModel.fields.test[prop]
-  const deleteTestFieldProperties = props => props.forEach(deleteTestFieldProperty)
-  const setTestField = settings => baseModel.fields.test = {...baseModel.fields.test, ...settings}
-  const getTestFieldError = data => validation.getPageErrors(data, baseModel).text.test
-
-  test('does not throw error when optionalString field is empty', () => {
-    expect(validation.getPageErrors({test: ''}, baseModel).text.test).toBeUndefined()
+describe('validating against currency fields', () => {
+  test('returns currency error when answer is not able to be converted to a currency amount', () => {
+    const field = {
+      type: 'currency',
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('currency', field)
+    expect(getTestFieldError({test: 'twelve'}, page)).toBe(expectedError)
   })
 
-  test('throws required error when nonEmptyString field is empty', () => {
-    setTestField({type: 'nonEmptyString'})
-    const expectedError = validation.errorMessage('required', baseModel.fields.test)
-    expect(validation.isValidPage({}, baseModel)).toBeFalsy()
-    expect(getTestFieldError({test: ''})).toBe(expectedError)
+  test('returns required error when currency answer is empty', () => {
+    const field = {
+      type: 'currency',
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('required', field)
+    expect(getTestFieldError({test: ''}, page)).toBe(expectedError)
+  })
+
+  test('does not return a currency error when answer is able to be converted to a currency amount', () => {
+    const field = {
+      type: 'currency',
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: '123'}, page)).toBeUndefined()
+    expect(getTestFieldError({test: '12.34'}, page)).toBeUndefined()
+    expect(getTestFieldError({test: '1,234.99'}, page)).toBeUndefined()
+  })
+
+  test('returns a currencyMax error when field type is currency, max is a number and answer is more than max', () => {
+    const field = {
+      type: 'currency',
+      name: 'test name',
+      max: 50,
+      evalMaxValue: 50
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('currencyMax', field)
+    expect(getTestFieldError({test: '53'}, page)).toBe(expectedError)
+  })
+
+  test('returns a currencyMax error with description when field type is currency, max is a number and answer is more than max', () => {
+    const field = {
+      type: 'currency',
+      name: 'test name',
+      max: 50,
+      evalMaxValue: 50,
+      maxDescription: 'the limit'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('currencyMax', field)
+    expect(getTestFieldError({test: '53'}, page)).toBe(expectedError)
+  })
+
+  test('does not return a currencyMax error when answer is on or below the maximum amount', () => {
+    const field = {
+      type: 'currency',
+      name: 'test name',
+      max: 50,
+      evalMaxValue: 50
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: '12'}, page)).toBeUndefined()
+    expect(getTestFieldError({test: '50'}, page)).toBeUndefined()
+  })
+
+  test('returns a betweenCurrencyMinAndMax error when field is currency and min and max are set as numbers and answer is not within range', () => {
+    const field = {
+      type: 'currency',
+      name: 'test name',
+      max: 50,
+      evalMaxValue: 50,
+      min: 10,
+      evalMinValue: 10
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('betweenCurrencyMinAndMax', field)
+    expect(getTestFieldError({test: '53'}, page)).toBe(expectedError)
+    expect(getTestFieldError({test: '5'}, page)).toBe(expectedError)
+  })
+
+  test('returns a currencyMin error when field type is currency, min is a number and the answer is less than min', () => {
+    const field = {
+      type: 'currency',
+      name: 'test name',
+      min: 10,
+      evalMinValue: 10
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('currencyMin', field)
+    expect(getTestFieldError({test: '3'}, page)).toBe(expectedError)
+  })
+
+  test('returns a currencyMin error with description when field type is currency, min is from a function and the answer is less than min', () => {
+    const field = {
+      type: 'currency',
+      name: 'how much you can pay',
+      min: data => parseFloat(data.otherAmount) / 4,
+      evalMinValue: 25,
+      minDescription: 'a quarter of what you told us you owe'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('currencyMin', field)
+    expect(getTestFieldError({test: '3', otherAmount: '100'}, page)).toBe(expectedError)
+  })
+
+  test('does not return a currencyMin error when answer is on or above the minimum amount', () => {
+    const field = {
+      type: 'currency',
+      name: 'test name',
+      min: 10,
+      evalMinValue: 10
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: '123'}, page)).toBeUndefined()
+    expect(getTestFieldError({test: '1,234'}, page)).toBeUndefined()
+  })
+
+  test('returns currencyMax error when answer is more than the amount from another named field', () => {
+    const field = {
+      type: 'currency',
+      name: 'test name',
+      max: 'otherAmount',
+      evalMaxValue: 100
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('currencyMax', field)
+    expect(getTestFieldError({test: '101', otherAmount: '100'}, page)).toBe(expectedError)
+  })
+
+  test('returns currencyMax error when answer is more than the function called on another field', () => {
+    const field = {
+      type: 'currency',
+      name: 'test name',
+      max:  data => parseFloat(data.otherAmount) / 2,
+      evalMaxValue: 50
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('currencyMax', field)
+    expect(getTestFieldError({test: '101', otherAmount: '100'}, page)).toBe(expectedError)
+  })
+
+  test('does not return a currencyMax error when answer not more than the amount from a function', () => {
+    const field = {
+      type: 'currency',
+      name: 'test name',
+      max:  data => parseFloat(data.otherAmount) / 2,
+      evalMaxValue: 100
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: '49', otherAmount: '200'}, page)).toBeUndefined()
+    expect(getTestFieldError({test: '100', otherAmount: '200'}, page)).toBeUndefined()
+  })
+
+})
+
+describe('validating strings', () => {
+
+  test('does not return an error when optionalString field is empty', () => {
+    const field = {
+      type: 'optionalString',
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    expect(validation.getPageErrors({test: ''}, page).text.test).toBeUndefined()
+  })
+
+  test('returns required error when nonEmptyString field is empty', () => {
+    const field = {
+      type: 'nonEmptyString',
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('required', field)
+    expect(validation.isValidPage({test: ''}, page)).toBeFalsy()
+    expect(getTestFieldError({test: ''}, page)).toBe(expectedError)
   })
 
   test('does not return error when nonEmptyString field is valid', () => {
-    expect(getTestFieldError({test: 'string'})).toBeUndefined()
+    const field = {
+      type: 'nonEmptyString',
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: 'string'}, page)).toBeUndefined()
   })
 
-  test('throws pattern error when regex is not matched', () => {
-    setTestField({
+  test('returns pattern error when regex is not matched', () => {
+    const field = {
+      type: 'nonEmptyString',
+      name: 'test name',
       regex: /^[0-9]*$/,
       patternText: 'Test name must only include numbers'
-    })
-    const expectedError = validation.errorMessage('pattern', baseModel.fields.test)
-    expect(getTestFieldError({test: 'ABC123'})).toBe(expectedError)
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('pattern', field)
+    expect(getTestFieldError({test: 'ABC123'}, page)).toBe(expectedError)
   })
 
-  test('throws pattern error when regex is not matched and field is optional', () => {
-    // deleting the patternText ensures use of default is covered
-    deleteTestFieldProperty('patternText')
-    setTestField({type: 'optionalString'})
-    const expectedError = validation.errorMessage('pattern', baseModel.fields.test)
-    expect(getTestFieldError({test: 'ABC123'})).toBe(expectedError)
+  test('returns pattern error when regex is not matched and field is optional', () => {
+    // omitting the patternText ensures use of default
+    const field = {
+      type: 'optionalString',
+      name: 'test name',
+      regex: /^[0-9]*$/
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('pattern', field)
+    expect(getTestFieldError({test: 'ABC123'}, page)).toBe(expectedError)
   })
 
-  test('does not throw error when regex is matched', () => {
-    expect(getTestFieldError({test: '123456'})).toBeUndefined()
+  test('does not return an error when regex is matched', () => {
+    const field = {
+      type: 'optionalString',
+      name: 'test name',
+      regex: /^[0-9]*$/
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: '123456'}, page)).toBeUndefined()
   })
 
-  test('throws exactLength error when exact length is not met', () => {
-    setTestField({exactLength: 3})
-    const expectedError = validation.errorMessage('exactLength', baseModel.fields.test)
-    expect(getTestFieldError({test: 'ABC123'})).toBe(expectedError)
+  test('returns exactLength error when exact length is not met', () => {
+    const field = {
+      type: 'optionalString',
+      name: 'test name',
+      exactLength: 3
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('exactLength', field)
+    expect(getTestFieldError({test: 'ABC123'}, page)).toBe(expectedError)
   })
 
-  test('does not throw error when exact length is met', () => {
-    expect(getTestFieldError({test: '123'})).toBeUndefined()
+  test('does not return an error when exact length is met', () => {
+    const field = {
+      type: 'optionalString',
+      name: 'test name',
+      exactLength: 3
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: '123'}, page)).toBeUndefined()
   })
 
-  test('does not throw error when exact length is met after transform', () => {
-    setTestField({transform: data => data.test.replace(/-/g, '').replace(/\s/g, '')})
-    expect(getTestFieldError({test: '1-2 3'})).toBeUndefined()
+  test('does not return an error when exact length is met after transform', () => {
+    const field = {
+      type: 'optionalString',
+      name: 'test name',
+      exactLength: 3,
+      transform: data => data.test.replace(/-/g, '').replace(/\s/g, '')
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: '1-2 3'}, page)).toBeUndefined()
   })
 
-  test('throws betweenMinAndMax error when answer length is not between min and max', () => {
-    const min = 3
-    const max = 5
-    deleteTestFieldProperties(['exactLength', 'transform'])
-    setTestField({minLength: min, maxLength: max, inputType: 'digits'})
-    const expectedError = validation.errorMessage('betweenMinAndMax', baseModel.fields.test)
-    expect(getTestFieldError({test: '1'})).toBe(expectedError)
-    expect(getTestFieldError({test: '123456'})).toBe(expectedError)
+  test('returns betweenMinAndMaxLength error when answer length is not between min and max', () => {
+    const field = {
+      type: 'optionalString',
+      name: 'test name',
+      inputType: 'digits',
+      minLength: 3,
+      maxLength: 5
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('betweenMinAndMaxLength', field)
+    expect(getTestFieldError({test: '1'}, page)).toBe(expectedError)
+    expect(getTestFieldError({test: '123456'}, page)).toBe(expectedError)
   })
 
-  test('throws betweenMinAndMax error with default input type when answer length is not between min and max', () => {
-    deleteTestFieldProperty('inputType')
-    const expectedError = validation.errorMessage('betweenMinAndMax', baseModel.fields.test)
-    expect(getTestFieldError({test: '1'})).toBe(expectedError)
-    expect(getTestFieldError({test: '123456'})).toBe(expectedError)
+  test('returns betweenMinAndMaxLength error with default input type when answer length is not between min and max', () => {
+    const field = {
+      type: 'optionalString',
+      name: 'test name',
+      minLength: 3,
+      maxLength: 5
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('betweenMinAndMaxLength', field)
+    expect(getTestFieldError({test: '1'}, page)).toBe(expectedError)
+    expect(getTestFieldError({test: '123456'}, page)).toBe(expectedError)
   })
 
-  test('does not throw error when answer length is between min and max', () => {
-    expect(getTestFieldError({test: '1234'})).toBeUndefined()
+  test('does not return a betweenMinAndMaxLength error when answer length is between min and max', () => {
+    const field = {
+      type: 'optionalString',
+      name: 'test name',
+      minLength: 3,
+      maxLength: 5
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: '1234'}, page)).toBeUndefined()
   })
 
-  test('throws tooShort error when answer is shorter than minimum length', () => {
-    deleteTestFieldProperty('maxLength')
-    setTestField({inputType: 'digits'})
-    const expectedError = validation.errorMessage('tooShort', baseModel.fields.test)
-    expect(getTestFieldError({test: '12'})).toBe(expectedError)
+  test('returns tooShort error when answer is shorter than minimum length', () => {
+    const field = {
+      type: 'optionalString',
+      name: 'test name',
+      minLength: 3,
+      inputType: 'digits'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('tooShort', field)
+    expect(getTestFieldError({test: '12'}, page)).toBe(expectedError)
   })
 
-  test('throws tooShort error with default input type when answer is shorter than minimum length', () => {
-    deleteTestFieldProperty('inputType')
-    const expectedError = validation.errorMessage('tooShort', baseModel.fields.test)
-    expect(getTestFieldError({test: '12'})).toBe(expectedError)
+  test('returns tooShort error with default input type when answer is shorter than minimum length', () => {
+    const field = {
+      type: 'optionalString',
+      name: 'test name',
+      minLength: 3
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('tooShort', field)
+    expect(getTestFieldError({test: '12'}, page)).toBe(expectedError)
   })
 
-  test('does not throw error when answer is on or above minimum length', () => {
-    expect(getTestFieldError({test: '123'})).toBeUndefined()
-    expect(getTestFieldError({test: '1234'})).toBeUndefined()
+  test('does not return an error when answer is on or above minimum length', () => {
+    const field = {
+      type: 'optionalString',
+      name: 'test name',
+      minLength: 3
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: '123'}, page)).toBeUndefined()
+    expect(getTestFieldError({test: '1234'}, page)).toBeUndefined()
   })
 
-  test('throws tooLong error when answer is longer than maximum length', () => {
-    deleteTestFieldProperty('minLength')
-    setTestField({
+  test('returns tooLong error when answer is longer than maximum length', () => {
+    const field = {
+      type: 'optionalString',
+      name: 'test name',
       maxLength: 5,
       inputType: 'digits'
-    })
-    const expectedError = validation.errorMessage('tooLong', baseModel.fields.test)
-    expect(getTestFieldError({test: '123456'})).toBe(expectedError)
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('tooLong', field)
+    expect(getTestFieldError({test: '123456'}, page)).toBe(expectedError)
   })
 
-  test('throws tooLong error with default input type when answer is longer than maximum length', () => {
-    deleteTestFieldProperty('inputType')
-    const expectedError = validation.errorMessage('tooLong', baseModel.fields.test)
-    expect(getTestFieldError({test: '123456'})).toBe(expectedError)
+  test('returns tooLong error with default input type when answer is longer than maximum length', () => {
+    const field = {
+      type: 'optionalString',
+      name: 'test name',
+      maxLength: 5
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('tooLong', field)
+    expect(getTestFieldError({test: '123456'}, page)).toBe(expectedError)
   })
 
-  test('does not throw error when answer is not longer than maximum length', () => {
-    expect(getTestFieldError({test: '1234'})).toBeUndefined()
-    expect(getTestFieldError({test: '12345'})).toBeUndefined()
+  test('does not return an error when answer is not longer than maximum length', () => {
+    const field = {
+      type: 'optionalString',
+      name: 'test name',
+      maxLength: 5
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: '1234'}, page)).toBeUndefined()
+    expect(getTestFieldError({test: '12345'}, page)).toBeUndefined()
+  })
+})
+
+describe('validating numbers', () => {
+
+  test('returns number error when answer is not a number', () => {
+    const field = {
+      type: 'number',
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('number', field)
+    expect(getTestFieldError({test: 'twelve'}, page)).toBe(expectedError)
   })
 
-  test('throws number error when answer is not a number', () => {
-    deleteTestFieldProperties(['maxLength', 'regex', 'patternText'])
-    setTestField({ type: 'number'})
-    const expectedError = validation.errorMessage('number', baseModel.fields.test)
-    expect(getTestFieldError({test: 'twelve'})).toBe(expectedError)
+  test('returns required error when number answer is empty', () => {
+    const field = {
+      type: 'number',
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('required', field)
+    expect(getTestFieldError({test: ''}, page)).toBe(expectedError)
   })
 
-  test('throws required error when number answer is empty', () => {
-    const expectedError = validation.errorMessage('required', baseModel.fields.test)
-    expect(getTestFieldError({})).toBe(expectedError)
+  test('does not return a number error when answer is a string representation of a number', () => {
+    const field = {
+      type: 'number',
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: '12'}, page)).toBeUndefined()
   })
 
-  test('does not throw number error when answer is a number or string representation of a number', () => {
-    expect(getTestFieldError({test: 12})).toBeUndefined()
-    expect(getTestFieldError({test: '12'})).toBeUndefined()
+  test('returns a numberMin error when field type is number, min is a number and the answer is less than that number', () => {
+    const field = {
+      type: 'number',
+      name: 'test name',
+      min: 10,
+      evalMinValue: 10
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('numberMin', field)
+    expect(getTestFieldError({test: '3'}, page)).toBe(expectedError)
   })
 
-  test('throws an enum error when required enum answer is empty', () => {
-    setTestField({ type: 'enum', validValues: ['yes', 'no'] })
-    const expectedError = validation.errorMessage('enum', baseModel.fields.test)
-    expect(getTestFieldError({})).toBe(expectedError)
+  test('returns a numberMin error when field type is number, min is reference to a field value and the answer is less than that field', () => {
+    const field = {
+      type: 'number',
+      name: 'test name',
+      min: 'otherAmount',
+      evalMinValue: 10
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('numberMin', field)
+    expect(getTestFieldError({test: '3', otherAmount: '10'}, page)).toBe(expectedError)
   })
 
-  test('throws an enum error when enum answer is not a valid value', () => {
-    const expectedError = validation.errorMessage('enum', baseModel.fields.test)
-    expect(getTestFieldError({test: 'maybe'})).toBe(expectedError)
+  test('returns a numberMin error when field type is number, min is from a function and the answer is less than that field', () => {
+    const field = {
+      type: 'number',
+      name: 'test name',
+      min: data => parseFloat(data.otherAmount),
+      evalMinValue: 10
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('numberMin', field)
+    expect(getTestFieldError({test: '3', otherAmount: '10'}, page)).toBe(expectedError)
   })
 
-  test('does not throw an enum error when enum answer is a valid value', () => {
-    expect(getTestFieldError({test: 'yes'})).toBeUndefined()
-    expect(getTestFieldError({test: 'no'})).toBeUndefined()
+  test('returns a numberMin error with minDescription when field type is number, min is from a function and the answer is less than that field', () => {
+    const field = {
+      type: 'number',
+      name: 'test name',
+      min: data => parseFloat(data.otherAmount),
+      evalMinValue: 10,
+      minDescription: 'the other amount'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('numberMin', field)
+    expect(getTestFieldError({test: '3', otherAmount: '10'}, page)).toBe(expectedError)
   })
 
-  test('does not throw an enum error when enum answer is a valid value', () => {
-    expect(getTestFieldError({test: 'yes'})).toBeUndefined()
-    expect(getTestFieldError({test: 'no'})).toBeUndefined()
+  test('does not return a numberMin error when field type is number and answer is on or above the minimum amount', () => {
+    const field = {
+      type: 'number',
+      name: 'test name',
+      min: 10,
+      evalMinValue: 10
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: '10'}, page)).toBeUndefined()
+    expect(getTestFieldError({test: '1234'}, page)).toBeUndefined()
   })
 
-  test('throws an enum error when required array answer is empty', () => {
-    setTestField({ type: 'array', name: 'all colours you like', validValues: ['red', 'blue', 'green'], minLength: 1 })
-    const expectedError = validation.errorMessage('enum', baseModel.fields.test)
-    expect(getTestFieldError({})).toBe(expectedError)
+  test('returns a betweenMinAndMaxNumbers error when field type is number and min and max are numbers and answer is not within range', () => {
+    const field = {
+      type: 'number',
+      name: 'test name',
+      min: 10,
+      evalMinValue: 10,
+      max: 50,
+      evalMaxValue: 50
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('betweenMinAndMaxNumbers', field)
+    expect(getTestFieldError({test: '53'}, page)).toBe(expectedError)
+    expect(getTestFieldError({test: '3'}, page)).toBe(expectedError)
   })
 
-  test('throws an enum error when not enough answers in array', () => {
-    setTestField({ minLength: 2 })
-    const expectedError = validation.errorMessage('enum', baseModel.fields.test)
-    expect(getTestFieldError({test: ['red']})).toBe(expectedError)
+  test('returns a numberMax error when field type is number, max is a number and answer is more than max', () => {
+    const field = {
+      type: 'number',
+      name: 'test name',
+      max: 50,
+      evalMaxValue: 50
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('numberMax', field)
+    expect(getTestFieldError({test: '53'}, page)).toBe(expectedError)
   })
 
-  test('does not throw an error when optional array is empty', () => {
-    deleteTestFieldProperties(['minLength'])
-    expect(getTestFieldError({test: []})).toBeUndefined()
+  test('returns a numberMax error when field type is number, max is a reference to another field and answer is more than field', () => {
+    const field = {
+      type: 'number',
+      name: 'test name',
+      max: 'otherAmount',
+      evalMaxValue: 50
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('numberMax', field)
+    expect(getTestFieldError({test: '53', otherAmount: '50'}, page)).toBe(expectedError)
   })
 
-  test('throws an enum error when array answer includes invalid answer', () => {
-    const expectedError = validation.errorMessage('enum', baseModel.fields.test)
-    expect(getTestFieldError({test: ['red', 'yellow']})).toBe(expectedError)
+  test('returns a numberMax error when field type is number, max is from a function and answer is more than function returns', () => {
+    const field = {
+      type: 'number',
+      name: 'test name',
+      max: data => parseFloat(data.otherAmount) * 0.5,
+      evalMaxValue: 25
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('numberMax', field)
+    expect(getTestFieldError({test: '53', otherAmount: '50'}, page)).toBe(expectedError)
   })
 
-  test('does not throw an error when all array answers are valid', () => {
-    expect(getTestFieldError({test: ['red', 'blue']})).toBeUndefined()
+  test('returns a numberMax error with maxDescription when field type is number, max is from a function and answer is more than function returns', () => {
+    const field = {
+      type: 'number',
+      name: 'test name',
+      max: data => parseFloat(data.otherAmount) * 0.5,
+      evalMaxValue: 25,
+      maxDescription: 'half of the other amount'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('numberMax', field)
+    expect(getTestFieldError({test: '53', otherAmount: '50'}, page)).toBe(expectedError)
   })
 
-  test('throws a noMatch error when input does not match', () => {
-    deleteTestFieldProperties(['validValues'])
-    setTestField({ type: 'nonEmptyString', matches: ['abc'], noMatchText: 'the reference we hold for you'})
-    const expectedError = validation.errorMessage('noMatch', baseModel.fields.test)
-    expect(getTestFieldError({test: 'def'})).toBe(expectedError)
+  test('does not return a numberMax error when answer is on or below the maximum amount', () => {
+    const field = {
+      type: 'number',
+      name: 'test name',
+      min: 10,
+      evalMinValue: 10,
+      max: 50,
+      evalMaxValue: 50
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: '12'}, page)).toBeUndefined()
+    expect(getTestFieldError({test: '50'}, page)).toBeUndefined()
   })
 
-  test('does not throw a noMatch error when answer is matched', () => {
-    expect(getTestFieldError({test: 'abc'})).toBeUndefined()
+})
+
+describe('validating enum and arrays', () => {
+
+  test('returns an enum error when required enum answer is empty', () => {
+    const field = {
+      type: 'enum',
+      name: 'test name',
+      validValues: ['yes', 'no']
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('enum', field)
+    expect(getTestFieldError({test: ''}, page)).toBe(expectedError)
   })
 
-  test('throws a noMatch error when input is in exclusions', () => {
-    deleteTestFieldProperties(['matches', 'noMatchText'])
-    setTestField({ type: 'nonEmptyString', matchingExclusions: ['abc']})
-    const expectedError = validation.errorMessage('noMatch', baseModel.fields.test)
-    expect(getTestFieldError({test: 'abc'})).toBe(expectedError)
+  test('returns an enum error when enum answer is not a valid value', () => {
+    const field = {
+      type: 'enum',
+      name: 'test name',
+      validValues: ['yes', 'no']
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('enum', field)
+    expect(getTestFieldError({test: 'maybe'}, page)).toBe(expectedError)
   })
 
-  test('does not throw a noMatch error when answer is not in exclusions', () => {
-    expect(getTestFieldError({test: 'def'})).toBeUndefined()
+  test('does not return an enum error when enum answer is a valid value', () => {
+    const field = {
+      type: 'enum',
+      name: 'test name',
+      validValues: ['yes', 'no']
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: 'yes'}, page)).toBeUndefined()
+    expect(getTestFieldError({test: 'no'}, page)).toBeUndefined()
   })
 
-  test('throws a missingFile error when file is missing', () => {
-    deleteTestFieldProperties(['validValues'])
-    setTestField({ type: 'file', name: 'test name' })
-    const expectedError = validation.errorMessage('missingFile', baseModel.fields.test)
-    expect(getTestFieldError({})).toBe(expectedError)
+  test('returns an enum error when required array answer is empty', () => {
+    const field = {
+      type: 'array',
+      name: 'test name',
+      validValues: ['red', 'blue', 'green'],
+      minLength: 1
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('enum', field)
+    expect(getTestFieldError({}, page)).toBe(expectedError)
   })
 
-  test('does not throw a missingFile error when file name is submitted', () => {
-    expect(getTestFieldError({test: 'any-file.pdf'})).toBeUndefined()
+  test('returns an enum error when not enough answers in array', () => {
+    const field = {
+      type: 'array',
+      name: 'test name',
+      validValues: ['red', 'blue', 'green'],
+      minLength: 2
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('enum', field)
+    expect(getTestFieldError({test: ['red']}, page)).toBe(expectedError)
   })
 
-  test('throws currency error when answer is not able to be converted to a currency amount', () => {
-    setTestField({type: 'currency'})
-    const expectedError = validation.errorMessage('currency', baseModel.fields.test)
-    expect(getTestFieldError({test: 'twelve'})).toBe(expectedError)
+  test('does not return an error when optional array is empty', () => {
+    const field = {
+      type: 'array',
+      name: 'test name',
+      validValues: ['red', 'blue', 'green']
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: []}, page)).toBeUndefined()
   })
 
-  test('throws required error when currency answer is empty', () => {
-    const expectedError = validation.errorMessage('required', baseModel.fields.test)
-    expect(getTestFieldError({test: ''})).toBe(expectedError)
+  test('returns an enum error when array answer includes invalid answer', () => {
+    const field = {
+      type: 'array',
+      name: 'test name',
+      validValues: ['red', 'blue', 'green']
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('enum', field)
+    expect(getTestFieldError({test: ['red', 'yellow']}, page)).toBe(expectedError)
   })
 
-  test('does not throw currency error when answer is able to be converted to a currency amount', () => {
-    expect(getTestFieldError({test: '123'})).toBeUndefined()
-    expect(getTestFieldError({test: '12.34'})).toBeUndefined()
+  test('does not return an error when all array answers are valid', () => {
+    const field = {
+      type: 'array',
+      name: 'test name',
+      validValues: ['red', 'blue', 'green']
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: ['red', 'blue']}, page)).toBeUndefined()
   })
 
-  test('throws currencyMin error when answer is less than minimum amount', () => {
-    setTestField({currencyMin: 50})
-    const expectedError = validation.errorMessage('currencyMin', baseModel.fields.test)
-    expect(getTestFieldError({test: '12'})).toBe(expectedError)
+})
+
+describe('validating matches and exclusions', () => {
+
+  test('returns a noMatch error when input does not match', () => {
+    const field = {
+      type: 'nonEmptyString',
+      name: 'test name',
+      matches: ['abc'],
+      noMatchText: 'the reference we hold for you'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('noMatch', field)
+    expect(getTestFieldError({test: 'def'}, page)).toBe(expectedError)
   })
 
-  test('does not throw currencyMin error when answer is on or above the minimum amount', () => {
-    expect(getTestFieldError({test: '123'})).toBeUndefined()
-    expect(getTestFieldError({test: '1,234'})).toBeUndefined()
+  test('does not return a noMatch error when answer is matched', () => {
+    const field = {
+      type: 'nonEmptyString',
+      name: 'test name',
+      matches: ['abc'],
+      noMatchText: 'the reference we hold for you'
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: 'abc'}, page)).toBeUndefined()
   })
 
-  test('throws currencyMax error when answer is more than maximum amount', () => {
-    deleteTestFieldProperty('currencyMin')
-    setTestField({type: 'currency', currencyMax: 50})
-    const expectedError = validation.errorMessage('currencyMax', baseModel.fields.test)
-    expect(getTestFieldError({test: '52'})).toBe(expectedError)
+  test('returns a noMatch error when input is in exclusions', () => {
+    const field = {
+      type: 'nonEmptyString',
+      name: 'test name',
+      matchingExclusions: ['abc']
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('noMatch', field)
+    expect(getTestFieldError({test: 'abc'}, page)).toBe(expectedError)
   })
 
-  test('does not throw currencyMax error when answer is on or below the maximum amount', () => {
-    expect(getTestFieldError({test: '12'})).toBeUndefined()
-    expect(getTestFieldError({test: '50'})).toBeUndefined()
+  test('does not return a noMatch error when answer is not in exclusions', () => {
+    const field = {
+      type: 'nonEmptyString',
+      name: 'test name',
+      matchingExclusions: ['abc']
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: 'def'}, page)).toBeUndefined()
   })
 
-  test('throws betweenCurrencyMinAndMax error when answer is more than maximum amount or less than minimum amount', () => {
-    setTestField({currencyMin: 10})
-    const expectedError = validation.errorMessage('betweenCurrencyMinAndMax', baseModel.fields.test)
-    expect(getTestFieldError({test: '52'})).toBe(expectedError)
+  test('returns a missingFile error when file is missing', () => {
+    const field = {
+      type: 'file',
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('missingFile', field)
+    expect(getTestFieldError({}, page)).toBe(expectedError)
   })
 
-  test('does not throw currencyMax error when answer is on or below the maximum amount', () => {
-    expect(getTestFieldError({test: '12'})).toBeUndefined()
-    expect(getTestFieldError({test: '50'})).toBeUndefined()
+  test('does not return a missingFile error when file name is submitted', () => {
+    const field = {
+      type: 'file',
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: 'any-file.pdf'}, page)).toBeUndefined()
   })
 
-  test('throws betweenMinAndMaxNumbers error when answer is less than minimum amount ', () => {
-    deleteTestFieldProperties(['currencyMin', 'currencyMax'])
-    setTestField({type: 'number', numberMin: 50, numberMax: 100})
-    const expectedError = validation.errorMessage('betweenMinAndMaxNumbers', baseModel.fields.test)
-    expect(getTestFieldError({test: '12'})).toBe(expectedError)
-  })
+})
 
-  test('throws betweenMinAndMaxNumbers error when answer is more than maximum amount ', () => {
-    const expectedError = validation.errorMessage('betweenMinAndMaxNumbers', baseModel.fields.test)
-    expect(getTestFieldError({test: '120'})).toBe(expectedError)
-  })
+describe('validating dates', () => {
 
-  test('throws numberMin error when answer is less than minimum amount', () => {
-    deleteTestFieldProperty('numberMax')
-    const expectedError = validation.errorMessage('numberMin', baseModel.fields.test)
-    expect(getTestFieldError({test: '12'})).toBe(expectedError)
-  })
-
-  test('does not throw numberMin error when answer is on or above the minimum amount', () => {
-    expect(getTestFieldError({test: '123'})).toBeUndefined()
-    expect(getTestFieldError({test: '1234'})).toBeUndefined()
-  })
-
-  test('throws numberMax error when answer is more than maximum amount', () => {
-    deleteTestFieldProperty('numberMin')
-    setTestField({type: 'number', numberMax: 50})
-    const expectedError = validation.errorMessage('numberMax', baseModel.fields.test)
-    expect(getTestFieldError({test: '52'})).toBe(expectedError)
-  })
-
-  test('does not throw numberMax error when answer is on or below the maximum amount', () => {
-    expect(getTestFieldError({test: '12'})).toBeUndefined()
-    expect(getTestFieldError({test: '50'})).toBeUndefined()
-  })
-
-  test('throws currencyMaxField error when answer is more than the amount from another named field', () => {
-    deleteTestFieldProperty('numberMax')
-    setTestField({
-      name: 'total',
-      type: 'currency',
-      currencyMaxField: 'the other amount',
-      getMaxCurrencyFromField: 'otherAmount'
-    })
-    const expectedError = validation.errorMessage('currencyMaxField', { ...baseModel.fields.test, evalCurrencyMaxValue: 100 })
-    expect(getTestFieldError({test: '101', otherAmount: '100'})).toBe(expectedError)
-  })
-
-  test('throws currencyMaxField error without other field description when it is not supplied', () => {
-    deleteTestFieldProperty('currencyMaxField')
-    const expectedError = validation.errorMessage('currencyMaxField', { ...baseModel.fields.test, evalCurrencyMaxValue: 100 })
-    expect(getTestFieldError({test: '101', otherAmount: '100'})).toBe(expectedError)
-  })
-
-  test('throws currencyMaxField error when answer is more than the function called on another field', () => {
-    setTestField({
-      name: 'total',
-      type: 'currency',
-      currencyMaxField: 'half of the other amount',
-      getMaxCurrencyFromField: data => parseFloat(data.otherAmount) / 2
-    })
-    const expectedError = validation.errorMessage('currencyMaxField', { ...baseModel.fields.test, evalCurrencyMaxValue: 50 })
-    expect(getTestFieldError({test: '101', otherAmount: '100'})).toBe(expectedError)
-  })
-
-  test('does not throw currencyMaxField error when answer not more than the amount from another field', () => {
-    expect(getTestFieldError({test: '99', otherAmount: '200'})).toBeUndefined()
-    expect(getTestFieldError({test: '100', otherAmount: '200'})).toBeUndefined()
-  })
-
-  test('throws date error when an invalid date is answered', () => {
-    setTestField({
+  test('returns date error when an invalid date is answered', () => {
+    const field = {
       type: 'date',
-      name: 'Date'
-    })
-    deleteTestFieldProperties(['currencyMaxField', 'getMaxCurrencyFromField'])
-    const expectedError = validation.errorMessage('date', baseModel.fields.test)
-    expect(getTestFieldError({'test-day': '99', 'test-month': '99', 'test-year': '2000'})).toBe(expectedError)
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('date', field)
+    expect(getTestFieldError({'test-day': '99', 'test-month': '99', 'test-year': '2000'}, page)).toBe(expectedError)
   })
 
   test('composes date from date parts and validates', () => {
-    expect(getTestFieldError({'test-day': '26', 'test-month': '2', 'test-year': '2000'})).toBeUndefined()
-  })
-
-  test('throws date error when no date is answered', () => {
-    setTestField({
+    const field = {
       type: 'date',
-      name: 'Date'
-    })
-    const expectedError = validation.errorMessage('required', baseModel.fields.test)
-    expect(getTestFieldError({'test-day': '', 'test-month': '', 'test-year': ''})).toBe(expectedError)
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({'test-day': '26', 'test-month': '2', 'test-year': '2000'}, page)).toBeUndefined()
   })
 
-  test('throws dayRequired error when day is missing from date answers', () => {
-    const expectedError = validation.errorMessage('dayRequired', baseModel.fields.test)
-    expect(getTestFieldError({'test-day': '', 'test-month': '2', 'test-year': '2000'})).toBe(expectedError)
+  test('returns date error when no date is answered', () => {
+    const field = {
+      type: 'date',
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('required', field)
+    expect(getTestFieldError({'test-day': '', 'test-month': '', 'test-year': ''}, page)).toBe(expectedError)
   })
 
-  test('throws monthRequired error when month is missing from date answers', () => {
-    const expectedError = validation.errorMessage('monthRequired', baseModel.fields.test)
-    expect(getTestFieldError({'test-day': '23', 'test-month': '', 'test-year': '2000'})).toBe(expectedError)
+  test('returns dayRequired error when day is missing from date answers', () => {
+    const field = {
+      type: 'date',
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('dayRequired', field)
+    expect(getTestFieldError({'test-day': '', 'test-month': '2', 'test-year': '2000'}, page)).toBe(expectedError)
   })
 
-  test('throws yearRequired error when year is missing from date answers', () => {
-    const expectedError = validation.errorMessage('yearRequired', baseModel.fields.test)
-    expect(getTestFieldError({'test-day': '23', 'test-month': '12', 'test-year': ''})).toBe(expectedError)
+  test('returns monthRequired error when month is missing from date answers', () => {
+    const field = {
+      type: 'date',
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('monthRequired', field)
+    expect(getTestFieldError({'test-day': '23', 'test-month': '', 'test-year': '2000'}, page)).toBe(expectedError)
+  })
+
+  test('returns yearRequired error when year is missing from date answers', () => {
+    const field = {
+      type: 'date',
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('yearRequired', field)
+    expect(getTestFieldError({'test-day': '23', 'test-month': '12', 'test-year': ''}, page)).toBe(expectedError)
   })
 
   test('expect error summary link to link to year field when only year missing', () => {
-    const errors = validation.getPageErrors({'test-day': '23', 'test-month': '12', 'test-year': ''}, baseModel)
+    const field = {
+      type: 'date',
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    const errors = validation.getPageErrors({'test-day': '23', 'test-month': '12', 'test-year': ''}, page)
     expect(errors.summary[0].href).toBe('#test-year')
   })
 
@@ -450,112 +836,168 @@ describe('validating against page models', () => {
     }).toThrow()
   })
 
-  test('throws dayAndYearRequired error when both day and year are missing from date answers', () => {
-    const expectedError = validation.errorMessage('dayAndYearRequired', baseModel.fields.test)
-    expect(getTestFieldError({'test-day': '', 'test-month': '12', 'test-year': ''})).toBe(expectedError)
+  test('returns dayAndYearRequired error when both day and year are missing from date answers', () => {
+    const field = {
+      type: 'date',
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('dayAndYearRequired', field)
+    expect(getTestFieldError({'test-day': '', 'test-month': '12', 'test-year': ''}, page)).toBe(expectedError)
   })
 
-  test('throws monthAndYearRequired error when both month and year are missing from date answers', () => {
-    const expectedError = validation.errorMessage('monthAndYearRequired', baseModel.fields.test)
-    expect(getTestFieldError({'test-day': '23', 'test-month': '', 'test-year': ''})).toBe(expectedError)
+  test('returns monthAndYearRequired error when both month and year are missing from date answers', () => {
+    const field = {
+      type: 'date',
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('monthAndYearRequired', field)
+    expect(getTestFieldError({'test-day': '23', 'test-month': '', 'test-year': ''}, page)).toBe(expectedError)
   })
 
-  test('throws dayAndMonthRequired error when both day and month are missing from date answers', () => {
-    const expectedError = validation.errorMessage('dayAndMonthRequired', baseModel.fields.test)
-    expect(getTestFieldError({'test-day': '', 'test-month': '', 'test-year': '2020'})).toBe(expectedError)
+  test('returns dayAndMonthRequired error when both day and month are missing from date answers', () => {
+    const field = {
+      type: 'date',
+      name: 'test name'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('dayAndMonthRequired', field)
+    expect(getTestFieldError({'test-day': '', 'test-month': '', 'test-year': '2020'}, page)).toBe(expectedError)
   })
 
-  test('throws beforeToday error when date is not before today', () => {
-    setTestField({
+  test('returns beforeToday error when date is not before today', () => {
+    const field = {
+      type: 'date',
+      name: 'test name',
       beforeToday: true
-    })
-    const expectedError = validation.errorMessage('beforeToday', baseModel.fields.test)
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('beforeToday', field)
     const tomorrow = LocalDate.now().plusDays(1)
     expect(getTestFieldError({
       'test-day': tomorrow.dayOfMonth().toString(),
       'test-month': tomorrow.monthValue().toString(),
-      'test-year': tomorrow.year().toString()})).toBe(expectedError)
+      'test-year': tomorrow.year().toString()
+    }, page)).toBe(expectedError)
   })
 
-  test('does not throw beforeToday error when date is before today', () => {
+  test('does not return a beforeToday error when date is before today', () => {
+    const field = {
+      type: 'date',
+      name: 'test name',
+      beforeToday: true
+    }
+    const page = setTestPage(field)
     const yesterday = LocalDate.now().minusDays(1)
     expect(getTestFieldError({
       'test-day': yesterday.dayOfMonth().toString(),
       'test-month': yesterday.monthValue().toString(),
-      'test-year': yesterday.year().toString()})).toBeUndefined()
+      'test-year': yesterday.year().toString()
+    }, page)).toBeUndefined()
   })
 
-  test('throws afterFixedDate error when date is not after supplied fixed date', () => {
-    const fixedDate = '2010-11-16'
-    deleteTestFieldProperty('beforeToday')
-    setTestField({
-      afterFixedDate: fixedDate
-    })
-    const expectedError = validation.errorMessage('afterFixedDate', baseModel.fields.test)
-    expect(getTestFieldError({'test-day': '29', 'test-month': '3', 'test-year': '2000'})).toBe(expectedError)
+  test('returns afterFixedDate error when date is not after supplied fixed date', () => {
+    const field = {
+      type: 'date',
+      name: 'test name',
+      afterFixedDate: '2010-11-16'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('afterFixedDate', field)
+    expect(getTestFieldError({'test-day': '29', 'test-month': '3', 'test-year': '2000'}, page)).toBe(expectedError)
   })
 
-  test('does not throw afterFixedDate error when date is after fixed date', () => {
-    expect(getTestFieldError({'test-day': '29', 'test-month': '3', 'test-year': '2011'})).toBeUndefined()
+  test('does not return an afterFixedDate error when date is after fixed date', () => {
+    const field = {
+      type: 'date',
+      name: 'test name',
+      afterFixedDate: '2010-11-16'
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({'test-day': '29', 'test-month': '3', 'test-year': '2011'}, page)).toBeUndefined()
   })
 
-  test('throws beforeFixedDate error when date is not before supplied fixed date', () => {
-    const fixedDate = '2010-11-16'
-    deleteTestFieldProperty('afterFixedDate')
-    setTestField({
-      beforeFixedDate: fixedDate
-    })
-    const expectedError = validation.errorMessage('beforeFixedDate', baseModel.fields.test)
-    expect(getTestFieldError({'test-day': '29', 'test-month': '3', 'test-year': '2011'})).toBe(expectedError)
+  test('returns beforeFixedDate error when date is not before supplied fixed date', () => {
+    const field = {
+      type: 'date',
+      name: 'test name',
+      beforeFixedDate: '2010-11-16'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('beforeFixedDate', field)
+    expect(getTestFieldError({'test-day': '29', 'test-month': '3', 'test-year': '2011'}, page)).toBe(expectedError)
   })
 
-  test('does not throw beforeFixedDate error when date is before fixed date', () => {
-    expect(getTestFieldError({'test-day': '29', 'test-month': '3', 'test-year': '2010'})).toBeUndefined()
+  test('does not return a beforeFixedDate error when date is before fixed date', () => {
+    const field = {
+      type: 'date',
+      name: 'test name',
+      beforeFixedDate: '2010-11-16'
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({'test-day': '29', 'test-month': '3', 'test-year': '2010'}, page)).toBeUndefined()
   })
 
-  test('throws beforeDate error when date is not before the date in another field', () => {
-    deleteTestFieldProperty('beforeFixedDate')
-    setTestField({
+  test('returns beforeDate error when date is not before the date in another field', () => {
+    const field = {
+      type: 'date',
+      name: 'test name',
       beforeField: 'otherDate',
       beforeDateField: data => data.otherDate,
       evalBeforeDateValue: '2020-02-02'
-    })
-    const expectedError = validation.errorMessage('beforeDate', baseModel.fields.test)
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('beforeDate', field)
     expect(getTestFieldError({
       'test-day': '29',
       'test-month': '3',
       'test-year': '2021',
       otherDate: '2020-02-02'
-    })).toBe(expectedError)
+    }, page)).toBe(expectedError)
   })
 
-  test('does not throw beforeDate error when date is before the date in another field', () => {
-    expect(getTestFieldError({test: '2010-11-15', otherDate: '2020-10-04'})).toBeUndefined()
+  test('does not return a  beforeDate error when date is before the date in another field', () => {
+    const field = {
+      type: 'date',
+      name: 'test name',
+      beforeField: 'otherDate',
+      beforeDateField: data => data.otherDate,
+      evalBeforeDateValue: '2020-02-02'
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({test: '2010-11-15', otherDate: '2020-10-04'}, page)).toBeUndefined()
   })
 
-  test('throws afterDate error when date is not after the date in another field', () => {
-    deleteTestFieldProperties(['beforeDateField', 'evalBeforeDateValue', 'beforeField'])
-    setTestField({
+  test('returns afterDate error when date is not after the date in another field', () => {
+    const field = {
+      type: 'date',
+      name: 'test name',
       afterField: 'otherDate',
       afterDateField: data => data.otherDate,
       evalAfterDateValue: '2020-02-02'
-    })
-    const expectedError = validation.errorMessage('afterDate', baseModel.fields.test)
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('afterDate', field)
     expect(getTestFieldError({
       test: '2020-01-01',
       otherDate: '2020-02-02'
-    })).toBe(expectedError)
+    }, page)).toBe(expectedError)
   })
 
-  test('does not throw afterDate error when date is after the date in another field', () => {
-    setTestField({
+  test('does not return an afterDate error when date is after the date in another field', () => {
+    const field = {
+      type: 'date',
+      name: 'test name',
       afterField: 'otherDate',
-      afterDateField: data => data.otherDate
-    })
+      afterDateField: data => data.otherDate,
+      evalAfterDateValue: '2020-02-02'
+    }
+    const page = setTestPage(field)
     expect(getTestFieldError({
       test: '2020-11-15',
       otherDate: '2020-10-04'
-    })).toBeUndefined()
+    }, page)).toBeUndefined()
   })
 
 })
@@ -567,11 +1009,11 @@ describe('using custom error messages', () => {
         type: 'number',
         name: 'test field',
         maxLength: 4,
-        numberMin: 10,
-        numberMax: 1000,
+        min: 10,
+        max: 1000,
         errors: {
           tooLong: 'The test field length cannot be more than 4 numbers long',
-          betweenMinAndMaxNumbers: field => `The value you enter for test field must be a number between ${field.numberMin} and ${field.numberMax}`,
+          betweenMinAndMaxNumbers: field => `The value you enter for test field must be a number between ${field.evalMinValue} and ${field.evalMaxValue}`,
           required: field => `You must enter a value for ${field.name}`
         }
       }

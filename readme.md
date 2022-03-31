@@ -44,13 +44,18 @@ the fields on the page are expected to use the date field name those inputs are 
 const pageModel = {
   fields: {
     'full-name': {
-      type: 'nonEmptyString',
-      name: 'Your full name'
+      type: 'nonEmptyString', // if left blank we will see "Enter your full name"
+      name: 'your full name'
     },
     'date-of-birth': {
       type: 'date',
-      name: 'Your date of birth',
-      beforeToday: true
+      name: 'your date of birth',
+      beforeToday: true // if a future date is entered we will see "Your date of birth must be in the past"
+    },
+    'number-of-days-available': {
+      type: 'number', 
+      name: 'how many days you are available',
+      min: 5 // if a number less than 5 is submitted we will see "How many days you are available must be 5 or more", field names are capitalised if they begin an error message
     }
   }
 }
@@ -63,28 +68,28 @@ interface PageModel {
 }
 
 interface FieldsMap {
-  [key: string]: FieldObject
+  [key: FieldKey]: FieldObject
 }
+
+type FieldKey = String // the id of a field, this should match any HTML input name in templates
 
 interface FieldObject {
   type: 'date' | 'currency' | 'enum' | 'optionalString' | 'nonEmptyString' | 'number' | 'file' | 'array'
-  name: String
+  name: String // the description of the field for use in messages, in GDS templates this represents [whatever it is] placeholders
   validValues?: Array<String> // for use if type === 'enum' or `array`, value of enum will be compared to values listed here
-  matches?: Array<String> // value of input (can be any string type) must be in this list
-  matchingExclusions?: Array<String> // value of input (can be any string type) must not be in this list
+  matches?: Array<String> // value of input must be in this list
+  matchingExclusions?: Array<String> // value of input must not be in this list
   noMatchText?: String // for use in error message to describe what the input is matched against - defaults to `our records` if missing
   includeIf?: (data: Payload) => Boolean // field will not be validate if returns false e.g. data => data.otherField === 'Yes'
   regex?: RegExp
-  exactLength?: Number
-  minLength?: Number
-  maxLength?: Number
+  exactLength?: Number // number of characters long
+  minLength?: Number // number of characters long
+  maxLength?: Number // number of characters long
   inputType?: 'characters' | 'digits' | 'numbers' | 'letters and numbers' | 'letters' // any description of permitted keys
-  numberMin?: Number
-  numberMax?: Number
-  currencyMin?: Number
-  currencyMax?: Number
-  currencyMaxField?: String // a description of the max (optional) that will be used in error message e.g. 'half the amount of the other field'
-  getMaxCurrencyFromField?: String | Function<(data: Payload) => Number> // String should be the key of another field and function can be anything e.g. data => parseFloat(data.otherField) / 2 to say cannot be more than half the value of 'otherField'
+  min?: FieldKey | Number | Function<(data: Payload) => Number> // supported by number and currency field types, if a FieldKey is used then the value stored in that field will be used, if a number is used then that is the amount, if a function is used it must return a number e.g. data => parseFloat(data.otherField) / 2
+  max?: FieldKey | Number | Function<(data: Payload) => Number> // supported by number and currency field types
+  minDescription?: String // optional description of the minimum amount e.g. 'half the amount of the other field' or 'the value you entered in least you can spend'
+  maxDescription?: String // optional description of the maximum amount e.g. 'the amount you have in the bank' or 'the value you entered in the most you can spend'
   afterFixedDate?: Date // iso format string e.g. 2021-04-01
   beforeFixedDate?: Date
   afterDateField?: (data: Payload) => Date // define function to grab value of field e.g. data => data.afterField
@@ -93,7 +98,7 @@ interface FieldObject {
   beforeField?: String // description of the date being compared to e.g. 'Date of death'
   beforeToday?: Boolean
   patternText?: String // description of regex for error messages - defaults to `${fieldDescription} is not valid`
-  errors?: CustomErrors // instead of using templated errors it's possible to include an error object with keys as the error case name (see ErrorTemplateName values) to overwrite the template with a custom string (or function that interpolates data)
+  errors?: CustomErrors // instead of using templated errors it's possible to include an error object with keys as the error case name (see ErrorTemplateName values) to overwrite the template with a custom string (or function that has access to data for interpolation)
   transform?: (data: Payload) => any // is used to assign a new value to validate for the field object e.g. stripping out hyphens and spaces from sort-code value means we can return a new value with this method: data => data['sort-code'].replace(/-/g, '').replace(/\s+/g, '')
 }
 
@@ -117,15 +122,15 @@ interface Errors {
   hasErrors: Boolean
 }
 interface Error {
-  id: String
+  id: FieldKey
   text: String
   href: String
 }
 interface InlineErrors {
-  [key: String]: Error
+  [key: FieldKey]: Error
 }
 interface ErrorMessages {
-  [key: String]: String
+  [key: FieldKey]: String
 }
 ```
 
@@ -154,9 +159,7 @@ router.post('/test-page', (req, res) => {
   })
   
   if (errors.hasErrors) {
-    res.render('/test-page', {
-      errors: errors
-    })
+    res.render('/test-page', { errors })
   } else {
     res.redirect('next-page')
   }
@@ -232,9 +235,7 @@ router.post('/test-page', (req, res) => {
   })
   
   if (errors.hasErrors) {
-    res.render('/test-page', {
-      errors: errors
-    })
+    res.render('/test-page', { errors })
   } else {
     res.redirect('next-page')
   }

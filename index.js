@@ -34,24 +34,35 @@
       Math.abs(asFloat).toFixed(2) :
       Math.abs(parseInt(withoutCommas)))}`
   }
+  const minMaxTemplates = {
+    number: {
+      betweenMinAndMax: 'betweenMinAndMaxNumbers',
+      min: 'numberMin',
+      max: 'numberMax'
+    },
+    currency: {
+      betweenMinAndMax: 'betweenCurrencyMinAndMax',
+      min: 'currencyMin',
+      max: 'currencyMax'
+    }
+  }
   const inputType = field => field.inputType || 'characters'
   const capitalise = word => word.charAt(0).toUpperCase() + word.slice(1)
   const slugify = str => str.toLowerCase().replace(/\W+/g, '-').replace(/-$/, '')
   const errorTemplates = {
     required: field => `Enter ${field.name}`,
-    betweenMinAndMax: field => `${capitalise(field.name)} must be between ${field.minLength} and ${field.maxLength} ${inputType(field)}`,
-    betweenMinAndMaxNumbers: field => `${capitalise(field.name)} must be between ${field.numberMin} and ${field.numberMax}`,
-    betweenCurrencyMinAndMax: field => `${capitalise(field.name)} must be between ${currencyDisplay(field.currencyMin)} and ${currencyDisplay(field.currencyMax)}`,
+    betweenMinAndMaxLength: field => `${capitalise(field.name)} must be between ${field.minLength} and ${field.maxLength} ${inputType(field)}`,
+    betweenMinAndMaxNumbers: field => `${capitalise(field.name)} must be between ${field.evalMinValue} and ${field.evalMaxValue}`,
+    betweenCurrencyMinAndMax: field => `${capitalise(field.name)} must be between ${currencyDisplay(field.evalMinValue)} and ${currencyDisplay(field.evalMaxValue)}`,
     tooShort: field => `${capitalise(field.name)} must must be ${field.minLength} ${inputType(field)} or more`,
     tooLong: field => `${capitalise(field.name)} must be ${field.maxLength} ${inputType(field)} or fewer`,
     exactLength: field => `${capitalise(field.name)} must be ${field.exactLength} ${inputType(field)}`,
     number: field => `${capitalise(field.name)} must be a number`,
+    numberMin: field => `${capitalise(field.name)} must be ${field.evalMinValue} or more${field.minDescription ? `, ${field.minDescription}` : ``}`,
+    numberMax: field => `${capitalise(field.name)} must be ${field.evalMaxValue} or less${field.maxDescription ? `, ${field.maxDescription}` : ``}`,
     currency: field => `${capitalise(field.name)} must be an amount of money`,
-    numberMin: field => `${capitalise(field.name)} must be ${field.numberMin} or more`,
-    numberMax: field => `${capitalise(field.name)} must be ${field.numberMax} or less`,
-    currencyMin: field => `${capitalise(field.name)} must be ${currencyDisplay(field.currencyMin)} or more`,
-    currencyMax: field => `${capitalise(field.name)} must be ${currencyDisplay(field.currencyMax)} or less`,
-    currencyMaxField: field => `${capitalise(field.name)} must not be more than ${field.currencyMaxField ? `the value of ${field.currencyMaxField} which is ` : ``}${currencyDisplay(field.evalCurrencyMaxValue)}`,
+    currencyMin: field => `${capitalise(field.name)} must be ${currencyDisplay(field.evalMinValue)} or more${field.minDescription ? `, ${field.minDescription}` : ``}`,
+    currencyMax: field => `${capitalise(field.name)} must be ${currencyDisplay(field.evalMaxValue)} or less${field.maxDescription ? `, ${field.maxDescription}` : ``}`,
     pattern: field => `${field.patternText || field.name + ` is not valid`}`,
     enum: field => `Select ${field.name}`,
     missingFile: field => `Upload ${field.name}`,
@@ -92,12 +103,34 @@
 
   const evaluatedValues = (data, field) => {
 
-    if (field.hasOwnProperty('getMaxCurrencyFromField') && data.hasOwnProperty(field.getMaxCurrencyFromField)) {
-      field.evalCurrencyMaxValue = parseFloat(data[field.getMaxCurrencyFromField])
+    if (field.hasOwnProperty('min') && minMaxTemplates.hasOwnProperty(field.type)) {
+      switch (typeof field.min) {
+        case 'number':
+          field.evalMinValue = field.min
+              break
+        case 'string':
+          field.evalMinValue = parseFloat(data[field.min])
+              break
+        case 'function':
+          field.evalMinValue = field.min(data)
+              break
+      }
+
     }
 
-    if (typeof field.getMaxCurrencyFromField === 'function') {
-      field.evalCurrencyMaxValue = field.getMaxCurrencyFromField(data)
+    if (field.hasOwnProperty('max') && minMaxTemplates.hasOwnProperty(field.type)) {
+      switch (typeof field.max) {
+        case 'number':
+          field.evalMaxValue = field.max
+          break
+        case 'string':
+          field.evalMaxValue = parseFloat(data[field.max])
+          break
+        case 'function':
+          field.evalMaxValue = field.max(data)
+          break
+      }
+
     }
 
     if (typeof field.afterDateField === 'function') {
@@ -188,16 +221,16 @@
         }
         break
       case 'number':
-        if (!value) {
+        if (!value.length) {
           errorText = errorMessage('required', field)
         } else if (isNaN(+value)) {
           errorText = errorMessage('number', field)
         }
         break
       case 'currency':
-        if (!value || typeof value === 'undefined') {
+        if (value.length === 0 || typeof value === 'undefined') {
           errorText = errorMessage('required', field)
-        } else if (!/^[0-9,]+(\.[0-9]{1,2})?$/.test(value.toString())) {
+        } else if (!/^[0-9,]+(\.[0-9]{1,2})?$/.test(value)) {
           errorText = errorMessage('currency', field)
         }
         break
@@ -214,27 +247,18 @@
         errorText = errorMessage('exactLength', field)
       } else if (field.hasOwnProperty('minLength') && field.hasOwnProperty('maxLength') &&
         (value.length < field.minLength || value.length > field.maxLength)) {
-        errorText = errorMessage('betweenMinAndMax', field)
-      } else if (field.hasOwnProperty('currencyMin') && field.hasOwnProperty('currencyMax') &&
-          (parseFloat(value) < field.currencyMin || parseFloat(value) > field.currencyMax)) {
-        errorText = errorMessage('betweenCurrencyMinAndMax', field)
+        errorText = errorMessage('betweenMinAndMaxLength', field)
       } else if (field.hasOwnProperty('maxLength') && value.length > field.maxLength) {
         errorText = errorMessage('tooLong', field)
       } else if (field.hasOwnProperty('minLength') && value.length < field.minLength) {
         errorText = errorMessage('tooShort', field)
-      } else if (field.hasOwnProperty('currencyMin') && parseFloat(value) < field.currencyMin) {
-        errorText = errorMessage('currencyMin', field)
-      } else if (field.hasOwnProperty('currencyMax') && parseFloat(value) > field.currencyMax) {
-        errorText = errorMessage('currencyMax', field)
-      } else if (field.hasOwnProperty('numberMin') && field.hasOwnProperty('numberMax') &&
-          (value < field.numberMin || value > field.numberMax)) {
-        errorText = errorMessage('betweenMinAndMaxNumbers', field)
-      } else if (field.hasOwnProperty('numberMin') && value < field.numberMin) {
-        errorText = errorMessage('numberMin', field)
-      } else if (field.hasOwnProperty('evalCurrencyMaxValue') && value > field.evalCurrencyMaxValue) {
-        errorText = errorMessage('currencyMaxField', field)
-      } else if (field.hasOwnProperty('numberMax') && value > field.numberMax) {
-        errorText = errorMessage('numberMax', field)
+      } else if (field.hasOwnProperty('evalMinValue') && field.hasOwnProperty('evalMaxValue') &&
+          (parseFloat(value) < field.evalMinValue || parseFloat(value) > field.evalMaxValue)) {
+        errorText = errorMessage(minMaxTemplates[field.type].betweenMinAndMax, field)
+      } else if (field.hasOwnProperty('evalMinValue') && parseFloat(value) < field.evalMinValue) {
+        errorText = errorMessage(minMaxTemplates[field.type].min, field)
+      } else if (field.hasOwnProperty('evalMaxValue') && parseFloat(value) > field.evalMaxValue) {
+        errorText = errorMessage(minMaxTemplates[field.type].max, field)
       } else if (field.hasOwnProperty('regex') && !field.regex.test(value)) {
         errorText = errorMessage('pattern', field)
       } else if (field.hasOwnProperty('evalBeforeDateValue') && !LocalDate.parse(value).isBefore(LocalDate.parse(field.evalBeforeDateValue))) {
