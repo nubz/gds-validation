@@ -20,8 +20,8 @@
     const errorKey = getDateErrorKey(value)
     const inputs = []
     if (wholeDateErrors.includes(errorKey) || dayErrors.includes(errorKey)) { inputs.push('day') }
-    if (monthErrors.includes(errorKey)) { inputs.push('month') }
-    if (yearErrors.includes(errorKey)) { inputs.push('year') }
+    if (wholeDateErrors.includes(errorKey) || monthErrors.includes(errorKey)) { inputs.push('month') }
+    if (wholeDateErrors.includes(errorKey) || yearErrors.includes(errorKey)) { inputs.push('year') }
     return inputs
   }
   const makeYearString = (data, key) => data[`${key}-year`] && data[`${key}-year`].length > 0 ? data[`${key}-year`] : null
