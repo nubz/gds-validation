@@ -106,7 +106,7 @@ interface CustomErrors {
     [key: ErrorTemplateName]: String | Function<(field: FieldObject) => String>
 }
 
-type ErrorTemplateName = 'required' | 'betweenMinAndMax' | 'betweenMinAndMaxNumbers' | 'tooShort' | 'tooLong' | 'exactLength' | 'number' | 'currency' | 'numberMin' | 'currencyMin' | 'numberMax' | 'currencyMax' | 'currencyMaxField' | 'pattern' | 'enum' | 'missingFile' | 'date'| 'beforeDate' | 'afterDate' | 'beforeToday' | 'afterFixedDate' | 'beforeFixedDate' | 'noMatch';
+type ErrorTemplateName = 'required' | 'betweenMinAndMax' | 'betweenMinAndMaxNumbers' | 'tooShort' | 'tooLong' | 'exactLength' | 'number' | 'currency' | 'numberMin' | 'currencyMin' | 'numberMax' | 'currencyMax' | 'pattern' | 'enum' | 'missingFile' | 'date'| 'beforeDate' | 'afterDate' | 'beforeToday' | 'afterFixedDate' | 'beforeFixedDate' | 'noMatch';
 
 ```
 
