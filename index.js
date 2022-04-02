@@ -16,6 +16,14 @@
     else if (yearErrors.includes(errorKey)) { return 'year' }
     else throw `errorKey ${errorKey} found that does not have a link`
   }
+  const getDateInputsInError = (fieldKey, field, value) => {
+    const errorKey = getDateErrorKey(value)
+    const inputs = []
+    if (wholeDateErrors.includes(errorKey) || dayErrors.includes(errorKey)) { inputs.push('day') }
+    if (monthErrors.includes(errorKey)) { inputs.push('month') }
+    if (yearErrors.includes(errorKey)) { inputs.push('year') }
+    return inputs
+  }
   const makeYearString = (data, key) => data[`${key}-year`] && data[`${key}-year`].length > 0 ? data[`${key}-year`] : null
   const makeMonthString = (data, key) => data[`${key}-month`] && data[`${key}-month`].length > 0 ? zeroPad(data[`${key}-month`]) : null
   const makeDayString = (data, key) => data[`${key}-day`] && data[`${key}-day`].length > 0 ? zeroPad(data[`${key}-day`]) : null
@@ -281,7 +289,8 @@
     return errorText ? {
       id: fieldKey,
       href: '#' + buildHref(fieldKey, field, value),
-      text: errorText
+      text: errorText,
+      inputs: field.type === 'date' ? getDateInputsInError(fieldKey, field, value) : [ fieldKey ]
     } : null
   }
 
@@ -303,10 +312,12 @@
         list.summary = [...list.summary, error]
         list.inline[next] = error
         list.text[next] = error.text
+        list.njk[next] = { text: error.text }
         list.hasErrors = true
       }
       return list
-    }, {summary: [], inline: {}, text: {}, hasErrors: false})
+    }, {summary: [], inline: {}, text: {}, njk: {}, hasErrors: false})
+
 
 
   module.exports = {
