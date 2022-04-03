@@ -73,7 +73,7 @@
     betweenMinAndMaxLength: field => `${capitalise(field.name)} must be between ${field.minLength} and ${field.maxLength} ${inputType(field)}`,
     betweenMinAndMaxNumbers: field => `${capitalise(field.name)} must be between ${field.evalMinValue} and ${field.evalMaxValue}`,
     betweenCurrencyMinAndMax: field => `${capitalise(field.name)} must be between ${currencyDisplay(field.evalMinValue)}${field.minDescription ? `, ${field.minDescription},` : ``} and ${currencyDisplay(field.evalMaxValue)}${field.maxDescription ? `, ${field.maxDescription}` : ``}`,
-    betweenMinAndMaxDates: field => `${capitalise(field.name)} must be between ${LocalDate.parse(field.evalMinValue).format(govDateFormat)} and ${LocalDate.parse(field.evalMaxValue).format(govDateFormat)}`,
+    betweenMinAndMaxDates: field => `${capitalise(field.name)} must be between ${LocalDate.parse(field.evalMinValue).format(govDateFormat)}${field.minDescription ? `, ${field.minDescription},` : ``} and ${LocalDate.parse(field.evalMaxValue).format(govDateFormat)}${field.maxDescription ? `, ${field.maxDescription}` : ``}`,
     tooShort: field => `${capitalise(field.name)} must must be ${field.minLength} ${inputType(field)} or more`,
     tooLong: field => `${capitalise(field.name)} must be ${field.maxLength} ${inputType(field)} or fewer`,
     exactLength: field => `${capitalise(field.name)} must be ${field.exactLength} ${inputType(field)}`,
