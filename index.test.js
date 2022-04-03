@@ -1014,7 +1014,24 @@ describe('validating dates', () => {
     }, page)).toBe(expectedError)
   })
 
-  test('does not return a  beforeFixedDate error when date is before the date in another field', () => {
+  test('does not return beforeFixedDate error when date to compare to is missing', () => {
+    const field = {
+      type: 'date',
+      name: 'test name',
+      max: 'otherDate'
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({
+      'test-day': '29',
+      'test-month': '3',
+      'test-year': '2021',
+      'otherDate-day': '',
+      'otherDate-month': '',
+      'otherDate-year': ''
+    }, page)).toBeUndefined()
+  })
+
+  test('does not return a beforeFixedDate error when date is before the date in another field', () => {
     const field = {
       type: 'date',
       name: 'test name',
@@ -1040,6 +1057,23 @@ describe('validating dates', () => {
       'otherDate-month': '2',
       'otherDate-year': '2020'
     }, page)).toBe(expectedError)
+  })
+
+  test('does not return afterFixedDate error when date to compare to is missing', () => {
+    const field = {
+      type: 'date',
+      name: 'test name',
+      min: 'otherDate'
+    }
+    const page = setTestPage(field)
+    expect(getTestFieldError({
+      'test-day': '29',
+      'test-month': '3',
+      'test-year': '2021',
+      'otherDate-day': '',
+      'otherDate-month': '',
+      'otherDate-year': ''
+    }, page)).toBeUndefined()
   })
 
   test('does not return an afterFixedDate error when date is after the date in another field', () => {

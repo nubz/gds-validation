@@ -128,9 +128,17 @@
           field.evalMinValue = field.min
               break
         case 'string':
-          field.evalMinValue = isoDateRegex.test(field.min)
-              ? field.min : (field.type === 'date') ? makeDateString(data, field.min) : parseFloat(data[field.min])
-              break
+          if (field.type === 'date') {
+            const isDateString = isoDateRegex.test(field.min)
+            if (isDateString) {
+              field.evalMinValue = field.min
+            } else if (!Array.isArray(makeDateString(data, field.min))) {
+              field.evalMinValue = makeDateString(data, field.min)
+            }
+          } else {
+            field.evalMinValue =parseFloat(data[field.min])
+          }
+          break
         case 'function':
           field.evalMinValue = field.min(data)
               break
@@ -144,8 +152,16 @@
           field.evalMaxValue = field.max
           break
         case 'string':
-          field.evalMaxValue = isoDateRegex.test(field.max)
-              ? field.max : (field.type === 'date') ? makeDateString(data, field.max) : parseFloat(data[field.max])
+          if (field.type === 'date') {
+            const isDateString = isoDateRegex.test(field.max)
+            if (isDateString) {
+              field.evalMaxValue = field.max
+            } else if (!Array.isArray(makeDateString(data, field.max))) {
+              field.evalMaxValue = makeDateString(data, field.max)
+            }
+          } else {
+            field.evalMaxValue =parseFloat(data[field.max])
+          }
           break
         case 'function':
           field.evalMaxValue = field.max(data)
