@@ -12,7 +12,7 @@ npm install --save @nubz/gds-validation
 ```
 ### Examples
 
-Examples of simple and complex use cases can be seen on (https://prototype-strategies.herokuapp.com/errors/)[https://prototype-strategies.herokuapp.com/errors/]
+Examples of simple and complex use cases can be seen on [https://prototype-strategies.herokuapp.com/errors/](https://prototype-strategies.herokuapp.com/errors/)
 
 ## API
 ### Requests
