@@ -72,7 +72,7 @@ interface FieldsMap {
 }
 
 type FieldKey = String // the id of a field, this should match any HTML input name in templates
-
+type IsoDateString = `${number}${number}${number}${number}-${number}${number}-${number}${number}`
 interface FieldObject {
   type: 'date' | 'currency' | 'enum' | 'optionalString' | 'nonEmptyString' | 'number' | 'file' | 'array'
   name: String // the description of the field for use in messages, in GDS templates this represents [whatever it is] placeholders
@@ -86,17 +86,12 @@ interface FieldObject {
   minLength?: Number // number of characters long
   maxLength?: Number // number of characters long
   inputType?: 'characters' | 'digits' | 'numbers' | 'letters and numbers' | 'letters' // any description of permitted keys
-  min?: FieldKey | Number | Function<(data: Payload) => Number> // supported by number and currency field types, if a FieldKey is used then the value stored in that field will be used, if a number is used then that is the amount, if a function is used it must return a number e.g. data => parseFloat(data.otherField) / 2
-  max?: FieldKey | Number | Function<(data: Payload) => Number> // supported by number and currency field types
-  minDescription?: String // optional description of the minimum amount e.g. 'half the amount of the other field' or 'the value you entered in least you can spend'
-  maxDescription?: String // optional description of the maximum amount e.g. 'the amount you have in the bank' or 'the value you entered in the most you can spend'
-  afterFixedDate?: Date // iso format string e.g. 2021-04-01
-  beforeFixedDate?: Date
-  afterDateField?: (data: Payload) => Date // define function to grab value of field e.g. data => data.afterField
-  beforeDateField?: (data: Payload) => Date
-  afterField?: String // description of the date being compared to e.g. 'Date of birth'
-  beforeField?: String // description of the date being compared to e.g. 'Date of death'
+  min?: FieldKey | IsoDateString | Number | Function<(data: Payload) => Number | IsoDateString> // supported by date, number and currency field types, if a FieldKey is used then the value stored in that field will be used, if a number is used then that is the amount, if a function is used it must return a date or a number to match teh field type e.g. data => parseFloat(data.otherField) / 2
+  max?: FieldKey | IsoDateString | Number | Function<(data: Payload) => Number | IsoDateString> // supported by date, number and currency field types
+  minDescription?: String // optional description of the minimum amount or date e.g. 'half the amount of the other field' or 'the date you joined'
+  maxDescription?: String // optional description of the maximum amount or date e.g. 'the amount you have in the bank' or 'the date you left'
   beforeToday?: Boolean
+  afterToday?: Boolean
   patternText?: String // description of regex for error messages - defaults to `${fieldDescription} is not valid`
   errors?: CustomErrors // instead of using templated errors it's possible to include an error object with keys as the error case name (see ErrorTemplateName values) to overwrite the template with a custom string (or function that has access to data for interpolation)
   transform?: (data: Payload) => any // is used to assign a new value to validate for the field object e.g. stripping out hyphens and spaces from sort-code value means we can return a new value with this method: data => data['sort-code'].replace(/-/g, '').replace(/\s+/g, '')
@@ -106,7 +101,7 @@ interface CustomErrors {
     [key: ErrorTemplateName]: String | Function<(field: FieldObject) => String>
 }
 
-type ErrorTemplateName = 'required' | 'betweenMinAndMax' | 'betweenMinAndMaxNumbers' | 'tooShort' | 'tooLong' | 'exactLength' | 'number' | 'currency' | 'numberMin' | 'currencyMin' | 'numberMax' | 'currencyMax' | 'pattern' | 'enum' | 'missingFile' | 'date'| 'beforeDate' | 'afterDate' | 'beforeToday' | 'afterFixedDate' | 'beforeFixedDate' | 'noMatch';
+type ErrorTemplateName = 'required' | 'betweenMinAndMax' | 'betweenMinAndMaxNumbers' | 'tooShort' | 'tooLong' | 'exactLength' | 'number' | 'currency' | 'numberMin' | 'currencyMin' | 'numberMax' | 'currencyMax' | 'pattern' | 'enum' | 'missingFile' | 'date' | 'beforeToday' | 'afterFixedDate' | 'beforeFixedDate' | 'noMatch';
 
 ```
 
