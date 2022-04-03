@@ -1,5 +1,7 @@
 const validation = require('./index')
-const { LocalDate } = require('@js-joda/core')
+const { DateTimeFormatter, LocalDate } = require('@js-joda/core')
+
+const isoFormatter = DateTimeFormatter.ofPattern('yyyy-MM-dd');
 
 describe('utilities used by error generation and validation', () => {
 
@@ -141,6 +143,23 @@ describe('validating against currency fields', () => {
       max: 50,
       evalMaxValue: 50,
       min: 10,
+      evalMinValue: 10
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('betweenCurrencyMinAndMax', field)
+    expect(getTestFieldError({test: '53'}, page)).toBe(expectedError)
+    expect(getTestFieldError({test: '5'}, page)).toBe(expectedError)
+  })
+
+  test('returns a betweenCurrencyMinAndMax error with descriptions when field is currency and min and max are set as numbers and answer is not within range', () => {
+    const field = {
+      type: 'currency',
+      name: 'test name',
+      max: 50,
+      maxDescription: 'the highest permitted',
+      evalMaxValue: 50,
+      min: 10,
+      minDescription: 'the lowest permitted',
       evalMinValue: 10
     }
     const page = setTestPage(field)
@@ -897,11 +916,44 @@ describe('validating dates', () => {
     }, page)).toBeUndefined()
   })
 
+  test('returns afterToday error when date is not after today', () => {
+    const field = {
+      type: 'date',
+      name: 'test name',
+      afterToday: true
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('afterToday', field)
+    const yesterday = LocalDate.now().minusDays(1)
+    expect(getTestFieldError({
+      'test-day': yesterday.dayOfMonth().toString(),
+      'test-month': yesterday.monthValue().toString(),
+      'test-year': yesterday.year().toString()
+    }, page)).toBe(expectedError)
+  })
+
+  test('does not return an afterToday error when date is after today', () => {
+    const field = {
+      type: 'date',
+      name: 'test name',
+      afterToday: true
+    }
+    const page = setTestPage(field)
+    const tomorrow = LocalDate.now().plusDays(1)
+    expect(getTestFieldError({
+      'test-day': tomorrow.dayOfMonth().toString(),
+      'test-month': tomorrow.monthValue().toString(),
+      'test-year': tomorrow.year().toString()
+    }, page)).toBeUndefined()
+  })
+
   test('returns afterFixedDate error when date is not after supplied fixed date', () => {
     const field = {
       type: 'date',
       name: 'test name',
-      afterFixedDate: '2010-11-16'
+      min: '2010-11-16',
+      minDescription: 'the day you joined',
+      evalMinValue: '2010-11-16'
     }
     const page = setTestPage(field)
     const expectedError = validation.errorMessage('afterFixedDate', field)
@@ -912,7 +964,8 @@ describe('validating dates', () => {
     const field = {
       type: 'date',
       name: 'test name',
-      afterFixedDate: '2010-11-16'
+      min: '2010-11-16',
+      evalMinValue: '2010-11-16'
     }
     const page = setTestPage(field)
     expect(getTestFieldError({'test-day': '29', 'test-month': '3', 'test-year': '2011'}, page)).toBeUndefined()
@@ -922,7 +975,9 @@ describe('validating dates', () => {
     const field = {
       type: 'date',
       name: 'test name',
-      beforeFixedDate: '2010-11-16'
+      max: '2010-11-16',
+      maxDescription: 'the day you left',
+      evalMaxValue: '2010-11-16'
     }
     const page = setTestPage(field)
     const expectedError = validation.errorMessage('beforeFixedDate', field)
@@ -933,70 +988,193 @@ describe('validating dates', () => {
     const field = {
       type: 'date',
       name: 'test name',
-      beforeFixedDate: '2010-11-16'
+      max: '2010-11-16',
+      evalMaxValue: '2010-11-16'
     }
     const page = setTestPage(field)
     expect(getTestFieldError({'test-day': '29', 'test-month': '3', 'test-year': '2010'}, page)).toBeUndefined()
   })
 
-  test('returns beforeDate error when date is not before the date in another field', () => {
+  test('returns beforeFixedDate error when date is not before the date in another field', () => {
     const field = {
       type: 'date',
       name: 'test name',
-      beforeField: 'otherDate',
-      beforeDateField: data => data.otherDate,
-      evalBeforeDateValue: '2020-02-02'
+      max: 'otherDate',
+      evalMaxValue: '2020-02-02'
     }
     const page = setTestPage(field)
-    const expectedError = validation.errorMessage('beforeDate', field)
+    const expectedError = validation.errorMessage('beforeFixedDate', field)
     expect(getTestFieldError({
       'test-day': '29',
       'test-month': '3',
       'test-year': '2021',
-      otherDate: '2020-02-02'
+      'otherDate-day': '2',
+      'otherDate-month': '2',
+      'otherDate-year': '2020'
     }, page)).toBe(expectedError)
   })
 
-  test('does not return a  beforeDate error when date is before the date in another field', () => {
+  test('does not return a  beforeFixedDate error when date is before the date in another field', () => {
     const field = {
       type: 'date',
       name: 'test name',
-      beforeField: 'otherDate',
-      beforeDateField: data => data.otherDate,
-      evalBeforeDateValue: '2020-02-02'
+      max: 'otherDate',
+      evalMaxValue: '2020-02-02'
     }
     const page = setTestPage(field)
     expect(getTestFieldError({test: '2010-11-15', otherDate: '2020-10-04'}, page)).toBeUndefined()
   })
 
-  test('returns afterDate error when date is not after the date in another field', () => {
+  test('returns afterFixedDate error when date is not after the date in another field', () => {
     const field = {
       type: 'date',
       name: 'test name',
-      afterField: 'otherDate',
-      afterDateField: data => data.otherDate,
-      evalAfterDateValue: '2020-02-02'
+      min: 'otherDate',
+      evalMinValue: '2020-02-02'
     }
     const page = setTestPage(field)
-    const expectedError = validation.errorMessage('afterDate', field)
+    const expectedError = validation.errorMessage('afterFixedDate', field)
     expect(getTestFieldError({
       test: '2020-01-01',
-      otherDate: '2020-02-02'
+      'otherDate-day': '2',
+      'otherDate-month': '2',
+      'otherDate-year': '2020'
     }, page)).toBe(expectedError)
   })
 
-  test('does not return an afterDate error when date is after the date in another field', () => {
+  test('does not return an afterFixedDate error when date is after the date in another field', () => {
     const field = {
       type: 'date',
       name: 'test name',
-      afterField: 'otherDate',
-      afterDateField: data => data.otherDate,
-      evalAfterDateValue: '2020-02-02'
+      min: 'otherDate',
+      evalMinValue: '2020-02-02'
     }
     const page = setTestPage(field)
     expect(getTestFieldError({
       test: '2020-11-15',
       otherDate: '2020-10-04'
+    }, page)).toBeUndefined()
+  })
+
+  test('returns betweenMinAndMaxDates error when date is not within range of supplied dates', () => {
+    const field = {
+      type: 'date',
+      name: 'test name',
+      min: '2020-02-02',
+      max: '2022-02-02',
+      evalMinValue: '2020-02-02',
+      evalMaxValue: '2022-02-02'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('betweenMinAndMaxDates', field)
+    expect(getTestFieldError({
+      test: '2020-01-01'
+    }, page)).toBe(expectedError)
+    expect(getTestFieldError({
+      test: '2023-01-01'
+    }, page)).toBe(expectedError)
+  })
+
+  test('returns betweenMinAndMaxDates error when date is not within range of dates from functions', () => {
+    const testDate = LocalDate.now()
+    const field = {
+      type: 'date',
+      name: 'test name',
+      min: data => testDate.minusYears(100).format(isoFormatter),
+      minDescription: '100 years ago',
+      max: data => testDate.minusYears(16).format(isoFormatter),
+      maxDescription: '16 years ago',
+      evalMinValue: testDate.minusYears(100).format(isoFormatter),
+      evalMaxValue: testDate.minusYears(16).format(isoFormatter)
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('betweenMinAndMaxDates', field)
+    expect(getTestFieldError({
+      test: '2020-01-01'
+    }, page)).toBe(expectedError)
+    expect(getTestFieldError({
+      test: '2023-01-01'
+    }, page)).toBe(expectedError)
+  })
+
+  test('returns betweenMinAndMaxDates error when date is not within range of supplied dates', () => {
+    const field = {
+      type: 'date',
+      name: 'test name',
+      min: '2020-02-02',
+      max: '2022-02-02',
+      evalMinValue: '2020-02-02',
+      evalMaxValue: '2022-02-02'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('betweenMinAndMaxDates', field)
+    expect(getTestFieldError({
+      test: '2020-01-01'
+    }, page)).toBe(expectedError)
+    expect(getTestFieldError({
+      test: '2023-01-01'
+    }, page)).toBe(expectedError)
+  })
+
+  test('returns betweenMinAndMaxDates error when date is not within range of dates in other fields', () => {
+    const field = {
+      type: 'date',
+      name: 'test name',
+      min: 'earliest',
+      max: 'latest',
+      evalMinValue: '2020-02-02',
+      evalMaxValue: '2022-02-02'
+    }
+    const page = setTestPage(field)
+    const expectedError = validation.errorMessage('betweenMinAndMaxDates', field)
+    expect(getTestFieldError({
+      test: '2020-01-01',
+      'earliest-day': '2',
+      'earliest-month': '2',
+      'earliest-year': '2020',
+      'latest-day': '2',
+      'latest-month': '2',
+      'latest-year': '2022'
+    }, page)).toBe(expectedError)
+    expect(getTestFieldError({
+      test: '2023-01-01',
+      'earliest-day': '2',
+      'earliest-month': '2',
+      'earliest-year': '2020',
+      'latest-day': '2',
+      'latest-month': '2',
+      'latest-year': '2022'
+    }, page)).toBe(expectedError)
+  })
+
+  test('does not return betweenMinAndMaxDates error when date is within range of dates in other fields', () => {
+    const field = {
+      type: 'date',
+      name: 'test name',
+      min: 'earliest',
+      max: 'latest',
+      evalMinValue: '2020-02-02',
+      evalMaxValue: '2022-02-02'
+    }
+    const page = setTestPage(field)
+
+    expect(getTestFieldError({
+      test: '2020-06-01',
+      'earliest-day': '2',
+      'earliest-month': '2',
+      'earliest-year': '2020',
+      'latest-day': '2',
+      'latest-month': '2',
+      'latest-year': '2022'
+    }, page)).toBeUndefined()
+    expect(getTestFieldError({
+      test: '2022-01-01',
+      'earliest-day': '2',
+      'earliest-month': '2',
+      'earliest-year': '2020',
+      'latest-day': '2',
+      'latest-month': '2',
+      'latest-year': '2022'
     }, page)).toBeUndefined()
   })
 

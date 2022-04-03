@@ -3,6 +3,7 @@
   const LocalDate = require('@js-joda/core').LocalDate
   const DateTimeFormatter = require('@js-joda/core').DateTimeFormatter
   const govDateFormat = DateTimeFormatter.ofPattern('d MMMM uuuu').withLocale(Locale.ENGLISH)
+  const isoDateRegex = /^\d{4}-([0][1-9]|1[0-2])-([0-2][1-9]|[1-3]0|3[01])$/
   const wholeDateErrors = ['date', 'required', 'beforeDate', 'afterDate', 'beforeFixedDate', 'afterFixedDate', 'beforeToday']
   const dayErrors = ['dayRequired', 'dayAndYearRequired', 'dayAndMonthRequired']
   const monthErrors = ['monthRequired', 'monthAndYearRequired', 'dayAndMonthRequired']
@@ -28,6 +29,9 @@
   const makeMonthString = (data, key) => data[`${key}-month`] && data[`${key}-month`].length > 0 ? zeroPad(data[`${key}-month`]) : null
   const makeDayString = (data, key) => data[`${key}-day`] && data[`${key}-day`].length > 0 ? zeroPad(data[`${key}-day`]) : null
   const makeDateString = (data, key) => {
+    if (data[key] && isoDateRegex.test(data[key])) {
+      return data[key]
+    }
     const year = makeYearString(data, key)
     const month = makeMonthString(data, key)
     const day = makeDayString(data, key)
@@ -42,6 +46,8 @@
       Math.abs(asFloat).toFixed(2) :
       Math.abs(parseInt(withoutCommas)))}`
   }
+  const isAfter = (value, min) => LocalDate.parse(value).isAfter(LocalDate.parse(min))
+  const isBefore = (value, max) => LocalDate.parse(value).isBefore(LocalDate.parse(max))
   const minMaxTemplates = {
     number: {
       betweenMinAndMax: 'betweenMinAndMaxNumbers',
@@ -52,6 +58,11 @@
       betweenMinAndMax: 'betweenCurrencyMinAndMax',
       min: 'currencyMin',
       max: 'currencyMax'
+    },
+    date: {
+      betweenMinAndMax: 'betweenMinAndMaxDates',
+      min: 'afterFixedDate',
+      max: 'beforeFixedDate'
     }
   }
   const inputType = field => field.inputType || 'characters'
@@ -61,7 +72,8 @@
     required: field => `Enter ${field.name}`,
     betweenMinAndMaxLength: field => `${capitalise(field.name)} must be between ${field.minLength} and ${field.maxLength} ${inputType(field)}`,
     betweenMinAndMaxNumbers: field => `${capitalise(field.name)} must be between ${field.evalMinValue} and ${field.evalMaxValue}`,
-    betweenCurrencyMinAndMax: field => `${capitalise(field.name)} must be between ${currencyDisplay(field.evalMinValue)} and ${currencyDisplay(field.evalMaxValue)}`,
+    betweenCurrencyMinAndMax: field => `${capitalise(field.name)} must be between ${currencyDisplay(field.evalMinValue)}${field.minDescription ? `, ${field.minDescription},` : ``} and ${currencyDisplay(field.evalMaxValue)}${field.maxDescription ? `, ${field.maxDescription}` : ``}`,
+    betweenMinAndMaxDates: field => `${capitalise(field.name)} must be between ${LocalDate.parse(field.evalMinValue).format(govDateFormat)} and ${LocalDate.parse(field.evalMaxValue).format(govDateFormat)}`,
     tooShort: field => `${capitalise(field.name)} must must be ${field.minLength} ${inputType(field)} or more`,
     tooLong: field => `${capitalise(field.name)} must be ${field.maxLength} ${inputType(field)} or fewer`,
     exactLength: field => `${capitalise(field.name)} must be ${field.exactLength} ${inputType(field)}`,
@@ -81,11 +93,10 @@
     dayAndYearRequired: field => `${capitalise(field.name)} must include a day and a year`,
     dayAndMonthRequired: field => `${capitalise(field.name)} must include a day and a month`,
     monthAndYearRequired: field => `${capitalise(field.name)} must include a month and a year`,
-    beforeDate: field => `${capitalise(field.name)} must be before ${field.beforeField}, ${LocalDate.parse(field.evalBeforeDateValue).format(govDateFormat)}`,
-    afterDate: field => `${capitalise(field.name)} must be after ${field.afterField}, ${LocalDate.parse(field.evalAfterDateValue).format(govDateFormat)}`,
     beforeToday: field => `${capitalise(field.name)} must be in the past`,
-    afterFixedDate: field => `${capitalise(field.name)} must be after ${LocalDate.parse(field.afterFixedDate).format(govDateFormat)}`,
-    beforeFixedDate: field => `${capitalise(field.name)} must be before ${LocalDate.parse(field.beforeFixedDate).format(govDateFormat)}`,
+    afterToday: field => `${capitalise(field.name)} must be in the future`,
+    afterFixedDate: field => `${capitalise(field.name)} must be after ${LocalDate.parse(field.evalMinValue).format(govDateFormat)}${field.minDescription ? `, ${field.minDescription}` : ``}`,
+    beforeFixedDate: field => `${capitalise(field.name)} must be before ${LocalDate.parse(field.evalMaxValue).format(govDateFormat)}${field.maxDescription ? `, ${field.maxDescription}` : ``}`,
     noMatch: field => `${capitalise(field.name)} does not match ${field.noMatchText || `our records`}`
   }
 
@@ -117,7 +128,8 @@
           field.evalMinValue = field.min
               break
         case 'string':
-          field.evalMinValue = parseFloat(data[field.min])
+          field.evalMinValue = isoDateRegex.test(field.min)
+              ? field.min : (field.type === 'date') ? makeDateString(data, field.min) : parseFloat(data[field.min])
               break
         case 'function':
           field.evalMinValue = field.min(data)
@@ -132,7 +144,8 @@
           field.evalMaxValue = field.max
           break
         case 'string':
-          field.evalMaxValue = parseFloat(data[field.max])
+          field.evalMaxValue = isoDateRegex.test(field.max)
+              ? field.max : (field.type === 'date') ? makeDateString(data, field.max) : parseFloat(data[field.max])
           break
         case 'function':
           field.evalMaxValue = field.max(data)
@@ -141,13 +154,6 @@
 
     }
 
-    if (typeof field.afterDateField === 'function') {
-      field.evalAfterDateValue = field.afterDateField(data)
-    }
-
-    if (typeof field.beforeDateField === 'function') {
-      field.evalBeforeDateValue = field.beforeDateField(data)
-    }
   }
 
   const isValidField = (payLoad, field, fieldKey) => {
@@ -166,7 +172,7 @@
       payLoad[fieldKey] = stripCommas(payLoad[fieldKey].toString().replace(/£/, ''))
     }
 
-    if (field.type === 'date' && !payLoad[fieldKey]) {
+    if (field.type === 'date' && !isoDateRegex.test(payLoad[fieldKey])) {
       payLoad[fieldKey] = makeDateString(payLoad, fieldKey)
     }
 
@@ -260,25 +266,24 @@
         errorText = errorMessage('tooLong', field)
       } else if (field.hasOwnProperty('minLength') && value.length < field.minLength) {
         errorText = errorMessage('tooShort', field)
-      } else if (field.hasOwnProperty('evalMinValue') && field.hasOwnProperty('evalMaxValue') &&
-          (parseFloat(value) < field.evalMinValue || parseFloat(value) > field.evalMaxValue)) {
-        errorText = errorMessage(minMaxTemplates[field.type].betweenMinAndMax, field)
-      } else if (field.hasOwnProperty('evalMinValue') && parseFloat(value) < field.evalMinValue) {
+      } else if (field.hasOwnProperty('evalMinValue') && field.hasOwnProperty('evalMaxValue')) {
+        if (field.type === 'date' && (!isAfter(value, field.evalMinValue) || !isBefore(value, field.evalMaxValue))) {
+          errorText = errorMessage(minMaxTemplates[field.type].betweenMinAndMax, field)
+        } else if (parseFloat(value) < field.evalMinValue || parseFloat(value) > field.evalMaxValue) {
+          errorText = errorMessage(minMaxTemplates[field.type].betweenMinAndMax, field)
+        }
+      } else if (field.hasOwnProperty('evalMinValue') &&
+          ((field.type !== 'date' && parseFloat(value) < field.evalMinValue) || (field.type === 'date' && !isAfter(value, field.evalMinValue)))) {
         errorText = errorMessage(minMaxTemplates[field.type].min, field)
-      } else if (field.hasOwnProperty('evalMaxValue') && parseFloat(value) > field.evalMaxValue) {
+      } else if (field.hasOwnProperty('evalMaxValue') &&
+          ((field.type !== 'date' && parseFloat(value) > field.evalMaxValue) || (field.type === 'date' && !isBefore(value, field.evalMaxValue)))) {
         errorText = errorMessage(minMaxTemplates[field.type].max, field)
       } else if (field.hasOwnProperty('regex') && !field.regex.test(value)) {
         errorText = errorMessage('pattern', field)
-      } else if (field.hasOwnProperty('evalBeforeDateValue') && !LocalDate.parse(value).isBefore(LocalDate.parse(field.evalBeforeDateValue))) {
-        errorText = errorMessage('beforeDate', field)
       } else if (field.hasOwnProperty('beforeToday') && !LocalDate.parse(value).isBefore(LocalDate.now())) {
         errorText = errorMessage('beforeToday', field)
-      } else if (field.hasOwnProperty('evalAfterDateValue') && !LocalDate.parse(value).isAfter(LocalDate.parse(field.evalAfterDateValue))) {
-        errorText = errorMessage('afterDate', field)
-      } else if (field.hasOwnProperty('afterFixedDate') && !LocalDate.parse(value).isAfter(LocalDate.parse(field.afterFixedDate))) {
-        errorText = errorMessage('afterFixedDate', field)
-      } else if (field.hasOwnProperty('beforeFixedDate') && !LocalDate.parse(value).isBefore(LocalDate.parse(field.beforeFixedDate))) {
-        errorText = errorMessage('beforeFixedDate', field)
+      } else if (field.hasOwnProperty('afterToday') && !LocalDate.parse(value).isAfter(LocalDate.now())) {
+        errorText = errorMessage('afterToday', field)
       } else if (field.hasOwnProperty('matches') && !field.matches.includes(value)) {
         errorText = errorMessage('noMatch', field)
       } else if (field.hasOwnProperty('matchingExclusions') && field.matchingExclusions.includes(value)) {
