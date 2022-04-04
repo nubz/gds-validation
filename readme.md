@@ -114,10 +114,14 @@ The `isValidPage()` function will return `true` or `false`, this method is usefu
 together. The `getPageErrors()` function will return an errors object for use in templates, even when there are no 
 errors within, so to assert there are no errors we could test the value of `hasErrors` which is a boolean.
 ```typescript
+type FieldKey = String // the key of a field which should match the HTML name of the field
+type DateInput = 'day' | 'month' | 'year'
+
 interface Errors {
   summary: Array<Error>
   inline: InlineErrors
   text: ErrorMessages
+  inputs: Array<FieldKey | DateInput> // an array of all inputs in error - date errors can cover multiple inputs such as dayAndYearRequired for dates
   hasErrors: Boolean
 }
 interface Error {
