@@ -1254,15 +1254,15 @@ describe('using custom error messages', () => {
 describe('validating against fields', () => {
 
   const fieldModel = {
-    includeIf: data => data.requireFieldModel,
-    type: 'optionalString',
+    includeIf: data => data.requireFieldModel === 'some value',
+    type: 'nonEmptyString',
     name: 'test field'
   }
   test('returns valid when field is not required by condition in includeIf function', () => {
-    expect(validation.isValidField({requireFieldModel: false, fieldModel: ''}, fieldModel, 'fieldModel')).toBe(true)
+    expect(validation.isValidField({requireFieldModel: '', fieldModel: ''}, fieldModel, 'fieldModel')).toBe(true)
   })
   test('returns false when field is required by condition in includeIf and data is not supplied', () => {
-    expect(validation.isValidField({requireFieldModel: true, fieldModel: ''}, fieldModel, 'fieldModel')).toBe(false)
+    expect(validation.isValidField({requireFieldModel: 'some value', fieldModel: ''}, fieldModel, 'fieldModel')).toBe(false)
   })
 })
 

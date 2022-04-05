@@ -105,7 +105,7 @@ interface CustomErrors {
     [key: ErrorTemplateName]: String | Function<(field: FieldObject) => String>
 }
 
-type ErrorTemplateName = 'required' | 'betweenMinAndMax' | 'betweenMinAndMaxNumbers' | 'tooShort' | 'tooLong' | 'exactLength' | 'number' | 'currency' | 'numberMin' | 'currencyMin' | 'numberMax' | 'currencyMax' | 'pattern' | 'enum' | 'missingFile' | 'date' | 'beforeToday' | 'afterFixedDate' | 'beforeFixedDate' | 'noMatch';
+type ErrorTemplateName = 'required' | 'betweenMinAndMax' | 'betweenMinAndMaxNumbers' | 'betweenMinAndMaxDates' | 'tooShort' | 'tooLong' | 'exactLength' | 'number' | 'currency' | 'numberMin' | 'currencyMin' | 'numberMax' | 'currencyMax' | 'pattern' | 'enum' | 'missingFile' | 'date' | 'beforeToday' | 'afterToday' | 'afterFixedDate' | 'beforeFixedDate' | 'noMatch' | 'dayRequired' | 'monthRequired' | 'yearRequired' | 'dayAndYearRequired' | 'dayAndMonthRequired' | 'monthAndYearRequired'
 
 ```
 
@@ -117,23 +117,31 @@ errors within, so to assert there are no errors we could test the value of `hasE
 type FieldKey = String // the key of a field which should match the HTML name of the field
 type DateInput = 'day' | 'month' | 'year'
 
+
 interface Errors {
   summary: Array<Error>
   inline: InlineErrors
   text: ErrorMessages
-  inputs: Array<FieldKey | DateInput> // an array of all inputs in error - date errors can cover multiple inputs such as dayAndYearRequired for dates
   hasErrors: Boolean
+  njk: NunJucksErrors
 }
 interface Error {
   id: FieldKey
   text: String
   href: String
+  inputs: Array<FieldKey | DateInput> // an array of all inputs in error - date errors, such as dayAndYearRequired, can cover multiple inputs e.g. ['day', 'year']
 }
 interface InlineErrors {
   [key: FieldKey]: Error
 }
 interface ErrorMessages {
   [key: FieldKey]: String
+}
+interface NunJucksErrors {
+ [key: FieldKey]: NunJucksWrapper  // some GOVUK njk components require a truthy object like `errorMessage = { text: 'error message...' },` as the value for errorMessage e.g. govukDateInput.njk
+}
+interface NunJucksWrapper {
+    text: String
 }
 ```
 

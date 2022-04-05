@@ -15,7 +15,7 @@
     if (wholeDateErrors.includes(errorKey) || dayErrors.includes(errorKey)) { return 'day' }
     else if (monthErrors.includes(errorKey)) { return 'month' }
     else if (yearErrors.includes(errorKey)) { return 'year' }
-    else throw `errorKey ${errorKey} found that does not have a link`
+    else throw `errorKey ${errorKey} not supported by dateErrorLink`
   }
   const getDateInputsInError = (fieldKey, field, value) => {
     const errorKey = getDateErrorKey(value)
@@ -25,11 +25,11 @@
     if (wholeDateErrors.includes(errorKey) || yearErrors.includes(errorKey)) { inputs.push('year') }
     return inputs
   }
-  const makeYearString = (data, key) => data[`${key}-year`] && data[`${key}-year`].length > 0 ? data[`${key}-year`] : null
-  const makeMonthString = (data, key) => data[`${key}-month`] && data[`${key}-month`].length > 0 ? zeroPad(data[`${key}-month`]) : null
-  const makeDayString = (data, key) => data[`${key}-day`] && data[`${key}-day`].length > 0 ? zeroPad(data[`${key}-day`]) : null
+  const makeYearString = (data, key) => data.hasOwnProperty(`${key}-year`) && data[`${key}-year`].length > 0 ? data[`${key}-year`] : null
+  const makeMonthString = (data, key) => data.hasOwnProperty(`${key}-month`) && data[`${key}-month`].length > 0 ? zeroPad(data[`${key}-month`]) : null
+  const makeDayString = (data, key) => data.hasOwnProperty(`${key}-day`) && data[`${key}-day`].length > 0 ? zeroPad(data[`${key}-day`]) : null
   const makeDateString = (data, key) => {
-    if (data[key] && isoDateRegex.test(data[key])) {
+    if (data.hasOwnProperty(key) && isoDateRegex.test(data[key])) {
       return data[key]
     }
     const year = makeYearString(data, key)
@@ -167,9 +167,7 @@
           field.evalMaxValue = field.max(data)
           break
       }
-
     }
-
   }
 
   const isValidField = (payLoad, field, fieldKey) => {
@@ -180,11 +178,11 @@
 
     evaluatedValues(payLoad, field)
 
-    if (payLoad[fieldKey] && typeof field.transform === 'function') {
+    if (payLoad.hasOwnProperty(fieldKey) && typeof field.transform === 'function') {
       payLoad[fieldKey] = field.transform(payLoad)
     }
 
-    if (payLoad[fieldKey] && field.type === 'currency') {
+    if (payLoad.hasOwnProperty(fieldKey) && field.type === 'currency') {
       payLoad[fieldKey] = stripCommas(payLoad[fieldKey].toString().replace(/£/, ''))
     }
 
@@ -192,7 +190,7 @@
       payLoad[fieldKey] = makeDateString(payLoad, fieldKey)
     }
 
-    if (payLoad[fieldKey]) {
+    if (payLoad.hasOwnProperty(fieldKey)) {
       return !validationError(field, payLoad[fieldKey], fieldKey)
     }
 
