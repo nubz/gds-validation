@@ -331,11 +331,10 @@
         list.summary = [...list.summary, error]
         list.inline[next] = error
         list.text[next] = error.text
-        list.njk[next] = { text: error.text }
         list.hasErrors = true
       }
       return list
-    }, {summary: [], inline: {}, text: {}, njk: {}, hasErrors: false})
+    }, {summary: [], inline: {}, text: {}, hasErrors: false})
 
 
 

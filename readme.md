@@ -123,7 +123,6 @@ interface Errors {
   inline: InlineErrors
   text: ErrorMessages
   hasErrors: Boolean
-  njk: NunJucksErrors
 }
 interface Error {
   id: FieldKey
@@ -136,12 +135,6 @@ interface InlineErrors {
 }
 interface ErrorMessages {
   [key: FieldKey]: String
-}
-interface NunJucksErrors {
- [key: FieldKey]: NunJucksWrapper  // some GOVUK njk components require a truthy object like `errorMessage = { text: 'error message...' },` as the value for errorMessage e.g. govukDateInput.njk
-}
-interface NunJucksWrapper {
-    text: String
 }
 ```
 
